@@ -16,7 +16,7 @@ export function ArticleCard({ article, index = 0 }: ArticleCardProps) {
 
   return (
     <motion.a
-      href={`/magazine/${article.id}`}
+      href={`/journal/${article.id}`}
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}

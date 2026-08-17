@@ -24,27 +24,27 @@ export const articles: Article[] = [
     title: "كيف ترتب مكتبك في مساحة صغيرة؟",
     description: "أفكار عملية تستغل كل سنتيمتر في مكتبك من غير ما تحس بالزحمة.",
     category: "تنظيم",
-    image:
-      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80&auto=format&fit=crop",
     readTime: "٤ دقائق",
+    date: "2026-06-02",
   },
   {
     id: "focus",
     title: "لماذا يؤثر تنظيم المكتب على تركيزك؟",
     description: "العلاقة بين المساحة من حولك ووضوح تفكيرك أقوى مما تتخيل.",
     category: "إنتاجية",
-    image:
-      "https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=800&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1483058712412-4245e9b90334?w=800&q=80&auto=format&fit=crop",
     readTime: "٦ دقائق",
+    date: "2026-05-18",
   },
   {
     id: "build-workspace",
     title: "كيف تبني Workspace عملي؟",
     description: "دليل خطوة بخطوة لبناء مساحة عمل تدوم معاك لسنين.",
     category: "دليل",
-    image:
-      "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&q=80&auto=format&fit=crop",
     readTime: "٨ دقائق",
+    date: "2026-04-27",
   },
 ];
 

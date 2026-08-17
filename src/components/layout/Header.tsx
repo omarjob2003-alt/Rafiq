@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, MapPin, Menu, Moon, Search, ShoppingBag, Sun, X } from 'lucide-react'
+import { Heart, MapPin, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useScrolled } from '../../hooks/useScrolled'
@@ -8,6 +8,9 @@ import { cn } from '../../lib/cn'
 import { Logo } from '../ui/Logo'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
+import { SearchOverlay } from './SearchOverlay'
+import { useWishlist } from '../../context/WishlistContext'
+import { useAuth } from '../../context/AuthContext'
 
 const navigation = {
   ar: [
@@ -15,20 +18,23 @@ const navigation = {
     { label: 'المجموعات', href: '/collections' },
     { label: 'ابنِ مساحتك', href: '#story' },
     { label: 'الإلهام', href: '#inspiration' },
-    { label: 'المجلة', href: '#journal' },
-    { label: 'عن رفيق', href: '#about' },
+    { label: 'المجلة', href: '/journal' },
+    { label: 'عن رفيق', href: '/about' },
   ],
   en: [
     { label: 'Products', href: '/shop' },
     { label: 'Collections', href: '/collections' },
     { label: 'Build your space', href: '#story' },
     { label: 'Inspiration', href: '#inspiration' },
-    { label: 'Journal', href: '#journal' },
-    { label: 'About Rafiq', href: '#about' },
+    { label: 'Journal', href: '/journal' },
+    { label: 'About Rafiq', href: '/about' },
   ],
 }
 
 export function Header() {
+  const { productIds } = useWishlist()
+  const { user } = useAuth()
+  const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const scrolled = useScrolled(14)
   const { itemCount } = useCart()
@@ -59,8 +65,12 @@ export function Header() {
             </nav>
             <button onClick={toggleLanguage} aria-label="Toggle language" className="hidden h-9 rounded-full border border-line px-2.5 text-[11px] font-bold transition hover:border-burgundy hover:text-burgundy dark:border-line-dark sm:inline-flex sm:items-center">{isArabic ? 'EN' : 'ع'}</button>
             <button onClick={toggleTheme} aria-label="Toggle theme" className="hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 sm:inline-flex">{theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}</button>
-            <button aria-label={t('بحث', 'Search')} className="hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 sm:inline-flex"><Search size={18} /></button>
-            <button aria-label={t('المفضلة', 'Wishlist')} className="hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 md:inline-flex"><Heart size={18} /></button>
+            <button onClick={() => setSearchOpen(true)} aria-label={t('بحث', 'Search')} className="inline-flex size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75"><Search size={18} /></button>
+            <a href="/wishlist" aria-label={t('المفضلة', 'Wishlist')} className="relative hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 md:inline-flex">
+              <Heart size={18} />
+              {productIds.length > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-burgundy-dark">{productIds.length}</span>}
+            </a>
+            <a href={user ? '/account' : '/login'} aria-label={t('حسابي', 'Account')} className="hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 md:inline-flex"><User size={18} /></a>
             <Link to="/cart" aria-label={t('السلة', 'Cart')} className="relative inline-flex size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75">
               <ShoppingBag size={19} />
               {itemCount > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-burgundy-dark">{itemCount}</span>}
@@ -77,6 +87,7 @@ export function Header() {
         <div className="mt-auto flex items-center gap-3"><button onClick={toggleLanguage} className="rounded-full border border-line px-4 py-2 text-sm dark:border-line-dark">{isArabic ? 'English' : 'العربية'}</button><button onClick={toggleTheme} className="grid size-10 place-items-center rounded-full border border-line dark:border-line-dark">{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button></div>
       </motion.aside>
     </motion.div>}</AnimatePresence>
+    <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
   </>
 }
 

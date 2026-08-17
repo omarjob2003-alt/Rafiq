@@ -24,8 +24,8 @@ export interface Article {
   category: string;
   image: string;
   readTime: string;
+  date: string;
 }
-
 export interface NavLink {
   label: string;
   href: string;

@@ -46,7 +46,7 @@ export function SectionHeading({
       <h2
         className={cn(
           "font-ar-heading text-3xl md:text-4xl lg:text-[2.75rem] leading-[1.25] font-semibold max-w-xl whitespace-pre-line",
-          isLight ? "text-cream" : "text-ink",
+          isLight ? "text-cream" : "text-ink dark:text-ink-dark",
           isCenter && "max-w-2xl"
         )}
       >
@@ -56,7 +56,7 @@ export function SectionHeading({
         <p
           className={cn(
             "text-base md:text-lg leading-relaxed max-w-md",
-            isLight ? "text-cream/70" : "text-muted"
+            isLight ? "text-cream/70" : "text-muted dark:text-muted-dark"
           )}
         >
           {subtitle}
