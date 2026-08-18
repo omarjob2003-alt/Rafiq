@@ -23,6 +23,8 @@ import { RequireAuth } from './components/layout/RequireAuth'
 import { TrackOrder } from './pages/TrackOrder'
 import { Journal } from './pages/Journal'
 import { JournalDetail } from './pages/JournalDetail'
+import { Contact } from './pages/Contact'
+import { NotFound } from './pages/NotFound'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -36,8 +38,11 @@ function Storefront() {
   const isCheckout = pathname.startsWith('/checkout')
 
   return <div dir={dir} className="min-h-screen bg-cream transition-colors duration-300 dark:bg-cream-dark">
+    <a href="#main-content" className="fixed -top-full left-1/2 z-[100] -translate-x-1/2 rounded-full bg-burgundy px-5 py-2.5 text-sm font-medium text-cream focus:top-3 transition-[top]">
+      {dir === 'rtl' ? 'تخطي للمحتوى الرئيسي' : 'Skip to main content'}
+    </a>
     {isCheckout ? <CheckoutHeader /> : <Header />}
-    <main>
+    <main id="main-content">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -57,7 +62,10 @@ function Storefront() {
         <Route path="/track-order" element={<TrackOrder />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/journal/:articleId" element={<JournalDetail />} />
-        <Route path="*" element={<Home />} />
+        <Route path="/contact" element={<Contact />} />
+
+        <Route path="*" element={<NotFound />} />
+        {/* <Route path="*" element={<Home />} /> */}
       </Routes>
     </main>
     {!isCheckout && <Footer />}

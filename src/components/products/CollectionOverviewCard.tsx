@@ -1,8 +1,11 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Boxes, Coffee, LayoutGrid, Sparkles } from 'lucide-react'
 import { useLocalized } from '../../hooks/useLocalized'
 import { products } from '../../data/products'
 import type { Collection } from '../../types'
+
+const MotionLink = motion(Link)
 
 const icons: Record<string, typeof LayoutGrid> = {
   workspace: LayoutGrid,
@@ -23,8 +26,8 @@ export function CollectionOverviewCard({ collection, index = 0 }: { collection: 
   const Icon = icons[collection.id] ?? LayoutGrid
   const count = products.filter(product => product.categoryId === collection.id).length
 
-  return <motion.a
-    href={collection.href}
+  return <MotionLink
+    to={collection.href}
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: '-60px' }}
@@ -53,5 +56,5 @@ export function CollectionOverviewCard({ collection, index = 0 }: { collection: 
         </span>
       </div>
     </div>
-  </motion.a>
+  </MotionLink>
 }

@@ -16,7 +16,7 @@ export const collections: Collection[] = [
     nameEn: "Organization",
     description: "أدوات تخلي كل شيء في مكانه، دايمًا.",
     image:
-      "https://images.unsplash.com/photo-1587613864411-cee1fda9c169?w=1100&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=1100&q=80&auto=format&fit=crop",
     href: "/collections/organization",
   },
   {

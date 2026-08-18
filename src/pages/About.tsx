@@ -5,6 +5,7 @@ import { useLocalized } from '../hooks/useLocalized'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { BrandStatement } from '../components/sections/BrandStatement'
 import { NewsletterSection } from '../components/sections/NewsletterSection'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const principles = [
   { icon: Sparkles, ar: ['البساطة أولًا', 'كل قطعة بنصممها بنشيل منها أي حاجة زيادة، ونسيب بس اللي بيفرق فعليًا.'], en: ['Simplicity first', 'Every piece is stripped of anything unnecessary, leaving only what truly matters.'] },
@@ -22,6 +23,7 @@ const materials = [
 
 export function About() {
   const { t, isArabic } = useLocalized()
+  usePageTitle(t('عن رفيق', 'About Rafiq'))
 
   return <div className="pt-[108px]">
     <section className="border-b border-line dark:border-line-dark">

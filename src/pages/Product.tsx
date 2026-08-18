@@ -7,6 +7,10 @@ import { useLocalized } from "../hooks/useLocalized";
 import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../lib/cn";
 import { useCart } from "../context/CartContext";
+import { usePageTitle } from '../hooks/usePageTitle'
+import { StarRating } from '../components/ui/StarRating'
+import { getProductRating, getProductReviews } from '../data/reviews'
+
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -27,12 +31,13 @@ const sizeOptions = [
   { ar: "60 × 80 سم", en: "60 × 80 cm" },
 ];
 
-const tabs = [
-  { id: "story", ar: "القصة", en: "Story" },
-  { id: "details", ar: "التفاصيل", en: "Details" },
-  { id: "specs", ar: "المواصفات", en: "Specifications" },
-  { id: "shipping", ar: "الشحن والإرجاع", en: "Shipping & returns" },
-];
+ const tabs = [
+    { id: "story", ar: "القصة", en: "Story" },
+    { id: "details", ar: "التفاصيل", en: "Details" },
+    { id: "specs", ar: "المواصفات", en: "Specifications" },
+    { id: "reviews", ar: "التقييمات", en: "Reviews" },
+    { id: "shipping", ar: "الشحن والإرجاع", en: "Shipping & returns" },
+  ];
 
 const specs = [
   { ar: ["الخامة", "معدن مطلي ببودرة حرارية"], en: ["Material", "Powder-coated metal"] },
@@ -40,14 +45,22 @@ const specs = [
   { ar: ["التركيب", "يثبّت على الحائط بسهولة"], en: ["Installation", "Easy wall mounting"] },
 ];
 
+
 export function Product() {
   const { addItem } = useCart();
+
   const [added, setAdded] = useState(false);
   const { productId } = useParams();
   const { isArabic, t } = useLocalized();
+  usePageTitle(t('تفاصيل المنتج', 'Product Details'))
+
   const { dir } = useLanguage();
   const product = products.find((item) => item.id === productId) ?? products[0];
   const copy = productsEn[product.id];
+  const rating = getProductRating(product.id)
+  const reviews = getProductReviews(product.id)
+ 
+
   const name = isArabic ? product.name : copy.name;
   const description = isArabic ? product.description : copy.description;
 
@@ -90,6 +103,11 @@ export function Product() {
           <div className="lg:order-1 lg:pt-4">
             <span className="inline-flex rounded-full border border-burgundy/20 bg-burgundy/[.04] px-3 py-1 text-xs text-burgundy dark:bg-burgundy/10">{t("الأكثر مبيعًا", "Best seller")}</span>
             <h1 className="mt-4 font-ar-heading text-4xl font-semibold leading-tight text-ink dark:text-ink-dark md:text-5xl">{name}</h1>
+            <button onClick={() => setTab('reviews')} className="mt-2 flex items-center gap-2 text-sm text-muted transition hover:text-burgundy dark:text-muted-dark">
+              <StarRating rating={rating.average} />
+              <span>{rating.average}</span>
+              <span className="underline underline-offset-2">({rating.count} {t('تقييم', 'reviews')})</span>
+            </button>
             <p className="mt-1 font-en-heading text-lg tracking-wide text-muted dark:text-muted-dark">{isArabic ? product.category : product.categoryId}</p>
             <p className="mt-6 max-w-md text-sm leading-8 text-muted dark:text-muted-dark">{description}</p>
             <p className="mt-5 text-2xl font-semibold text-burgundy">{product.price} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
@@ -156,6 +174,20 @@ export function Product() {
                     </div>
                   ))}
                 </dl>
+              )}
+              {tab === "reviews" && (
+                <div className="mt-6 space-y-5">
+                  {reviews.map(review => (
+                    <div key={review.id} className="border-b border-line pb-5 dark:border-line-dark">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? review.nameAr : review.nameEn}</p>
+                        <StarRating rating={review.rating} size={12} />
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-muted dark:text-muted-dark">{isArabic ? review.commentAr : review.commentEn}</p>
+                      <p className="mt-1 text-xs text-muted/70 dark:text-muted-dark/70">{new Date(review.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             <img src={product.image} alt={name} className="aspect-[1.45/1] w-full rounded-2xl object-cover" />

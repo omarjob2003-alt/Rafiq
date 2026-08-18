@@ -5,9 +5,11 @@ import { ArticleCard } from '../components/products/ArticleCard'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { NewsletterSection } from '../components/sections/NewsletterSection'
 import { cn } from '../lib/cn'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Journal() {
   const { t, isArabic } = useLocalized()
+  usePageTitle(t('مجلة رفيق', ' Rafiq journal'))
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
 
   const categories = useMemo(() => Array.from(new Set(articles.map(article => article.category))), [])

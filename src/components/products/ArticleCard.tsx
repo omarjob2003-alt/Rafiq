@@ -1,8 +1,11 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useLocalized } from "../../hooks/useLocalized";
 import { articlesEn } from "../../data/content";
 import type { Article } from "../../types";
+
+const MotionLink = motion(Link);
 
 interface ArticleCardProps {
   article: Article;
@@ -15,8 +18,8 @@ export function ArticleCard({ article, index = 0 }: ArticleCardProps) {
   const title = isArabic ? article.title : copy.title;
 
   return (
-    <motion.a
-      href={`/journal/${article.id}`}
+    <MotionLink
+      to={`/journal/${article.id}`}
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
@@ -36,6 +39,6 @@ export function ArticleCard({ article, index = 0 }: ArticleCardProps) {
           <ArrowLeft size={14} className={isArabic ? 'transition-transform duration-300 group-hover:-translate-x-1' : 'rotate-180 transition-transform duration-300 group-hover:translate-x-1'} />
         </span>
       </div>
-    </motion.a>
+    </MotionLink>
   );
 }

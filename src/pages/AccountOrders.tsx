@@ -4,10 +4,12 @@ import { useOrders } from '../context/OrdersContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { AccountLayout } from '../components/account/AccountLayout'
 import { products } from '../data/products'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function AccountOrders() {
     const { orders } = useOrders()
     const { t, isArabic } = useLocalized()
+    usePageTitle(t('طلباتي', 'My orders'))
 
     return <AccountLayout>
         <div className="rounded-2xl border border-line p-6 dark:border-line-dark md:p-8">

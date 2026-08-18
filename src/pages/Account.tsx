@@ -2,10 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { AccountLayout } from '../components/account/AccountLayout'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Account() {
   const { user, updateProfile } = useAuth()
   const { t } = useLocalized()
+  usePageTitle(t('حسابي', 'My Account'))
   const [name, setName] = useState(user?.name ?? '')
   const [saved, setSaved] = useState(false)
 

@@ -8,9 +8,15 @@ import { BrandStatement } from "../components/sections/BrandStatement";
 import { InspirationSection } from "../components/sections/InspirationSection";
 import { MagazineSection } from "../components/sections/MagazineSection";
 import { NewsletterSection } from "../components/sections/NewsletterSection";
+import { usePageTitle } from '../hooks/usePageTitle'
+import { useLocalized } from "../hooks/useLocalized";
+
 
 export function Home() {
+  const { t } = useLocalized()
+  usePageTitle(t('رفيق | Rafiq — مساحة عمل تساعدك تنجز', 'Rafiq — a workspace that helps you get things done'))
   return (
+    
     <>
       <HeroSection />
       <ValueProps />

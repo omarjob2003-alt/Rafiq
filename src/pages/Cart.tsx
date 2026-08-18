@@ -3,16 +3,43 @@ import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { products, productsEn } from '../data/products'
+import { usePageTitle } from '../hooks/usePageTitle'
+import { useState } from 'react'
+import { Tag } from 'lucide-react'
+
 
 export function Cart() {
   const { items, updateQuantity, removeItem } = useCart()
   const { isArabic, t } = useLocalized()
+  usePageTitle(t('سلة رفيق', 'Rafiq Cart'))
 
   const lines = items
     .map(item => ({ ...item, product: products.find(p => p.id === item.productId) }))
     .filter((line): line is typeof line & { product: NonNullable<typeof line.product> } => Boolean(line.product))
 
   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
+  const [couponInput, setCouponInput] = useState('')
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null)
+  const [couponError, setCouponError] = useState('')
+  const [city, setCity] = useState('cairo')
+
+  const coupons: Record<string, number> = { RAFIQ10: 0.1, WELCOME50: 50 }
+
+  const applyCoupon = () => {
+    const code = couponInput.trim().toUpperCase()
+    if (!code) return
+    if (!(code in coupons)) {
+      setCouponError(t('الكوبون ده مش صحيح.', 'This coupon is not valid.'))
+      setCoupon(null)
+      return
+    }
+    setCouponError('')
+    setCoupon({ code, discount: coupons[code] })
+  }
+
+  const discountAmount = coupon ? (coupon.discount < 1 ? Math.round(subtotal * coupon.discount) : coupon.discount) : 0
+  const estimatedShipping = city === 'cairo' ? (subtotal - discountAmount >= 1000 ? 0 : 60) : 90
+  const estimatedTotal = subtotal - discountAmount + estimatedShipping
   const freeShippingThreshold = 1000
   const remaining = Math.max(0, freeShippingThreshold - subtotal)
 
@@ -63,13 +90,34 @@ export function Cart() {
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('ملخص الطلب', 'Order summary')}</h2>
           <div className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span></div>
-            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{t('يُحسب عند الدفع', 'Calculated at checkout')}</span></div>
+            {coupon && <div className="flex justify-between text-burgundy"><span>{t('الخصم', 'Discount')}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
+            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن المتوقع', 'Estimated shipping')}</span><span>{estimatedShipping === 0 ? t('مجاني', 'Free') : `${estimatedShipping} ${t('جنيه', 'EGP')}`}</span></div>
           </div>
           {remaining > 0
             ? <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t(`أضف منتجات بـ ${remaining} جنيه كمان للحصول على شحن مجاني.`, `Add ${remaining} EGP more for free shipping.`)}</p>
             : <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t('مبروك، طلبك هيوصلك شحن مجاني.', 'You\u2019ve unlocked free shipping.')}</p>}
+          <div className="mt-5 space-y-2">
+            <p className="text-sm font-medium text-ink dark:text-ink-dark">{t('عندك كوبون؟', 'Have a coupon?')}</p>
+            <div className="flex gap-2">
+              <div className="flex flex-1 items-center gap-2 rounded-lg border border-line px-3 dark:border-line-dark">
+                <Tag size={14} className="text-muted dark:text-muted-dark" />
+                <input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder={t('كود الخصم', 'Coupon code')} className="w-full bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-muted dark:text-ink-dark dark:placeholder:text-muted-dark" style={{ direction: 'ltr' }} />
+              </div>
+              <button onClick={applyCoupon} className="rounded-lg border border-line px-4 text-sm font-medium text-ink transition hover:border-burgundy dark:border-line-dark dark:text-ink-dark">{t('تطبيق', 'Apply')}</button>
+            </div>
+            {couponError && <p className="text-xs text-burgundy">{couponError}</p>}
+            {coupon && <p className="text-xs text-burgundy">{t(`تم تطبيق كوبون ${coupon.code} ✓`, `Coupon ${coupon.code} applied ✓`)}</p>}
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <p className="text-sm font-medium text-ink dark:text-ink-dark">{t('تقدير الشحن', 'Estimate shipping')}</p>
+            <select value={city} onChange={e => setCity(e.target.value)} className="w-full rounded-lg border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark">
+              <option value="cairo">{t('القاهرة والجيزة', 'Cairo & Giza')}</option>
+              <option value="other">{t('باقي المحافظات', 'Other governorates')}</option>
+            </select>
+          </div>
           <div className="mt-5 flex justify-between border-t border-line pt-5 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
-            <span>{t('الإجمالي', 'Total')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span>
+            <span>{t('الإجمالي المتوقع', 'Estimated total')}</span><span>{estimatedTotal} {t('جنيه', 'EGP')}</span>
           </div>
           <Link to="/checkout" className="mt-6 flex w-full items-center justify-center rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('إتمام الطلب', 'Checkout')}</Link>
           <Link to="/shop" className="mt-3 flex w-full items-center justify-center text-sm text-muted hover:text-burgundy dark:text-muted-dark">{t('متابعة التسوق', 'Continue shopping')}</Link>

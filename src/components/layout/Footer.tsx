@@ -1,11 +1,13 @@
-﻿import { useLocalized } from '../../hooks/useLocalized'
+﻿import { Link } from 'react-router-dom'
+import { useLocalized } from '../../hooks/useLocalized'
 import { Logo } from '../ui/Logo'
+import { InstagramIcon, FacebookIcon, TiktokIcon, YoutubeIcon } from '../ui/SocialIcons'
 
 const socials = [
-  { label: 'IG', href: 'https://instagram.com', name: 'Instagram' },
-  { label: 'FB', href: 'https://facebook.com', name: 'Facebook' },
-  { label: 'TT', href: 'https://tiktok.com', name: 'TikTok' },
-  { label: 'YT', href: 'https://youtube.com', name: 'YouTube' },
+  { icon: InstagramIcon, href: 'https://instagram.com', name: 'Instagram' },
+  { icon: FacebookIcon, href: 'https://facebook.com', name: 'Facebook' },
+  { icon: TiktokIcon, href: 'https://tiktok.com', name: 'TikTok' },
+  { icon: YoutubeIcon, href: 'https://youtube.com', name: 'YouTube' },
 ]
 
 export function Footer() {
@@ -44,13 +46,13 @@ export function Footer() {
         <Logo tone="light" />
         <p className="mt-4 max-w-[220px] text-sm leading-7 text-cream/70">{t('أشياء بسيطة، مصممة بعناية لتكون رفيقك في كل يوم.', 'Simple things, thoughtfully made for every day.')}</p>
         <div className="mt-6 flex gap-2.5">
-          {socials.map(social => <a key={social.name} href={social.href} target="_blank" rel="noreferrer" aria-label={social.name} className="grid size-8 place-items-center rounded-full border border-cream/25 text-[11px] font-semibold text-cream/85 transition hover:border-cream hover:text-cream">{social.label}</a>)}
+          {socials.map(social => <a key={social.name} href={social.href} target="_blank" rel="noreferrer" aria-label={social.name} className="grid size-8 place-items-center rounded-full border border-cream/25 text-cream/85 transition hover:border-cream hover:text-cream"><social.icon className="size-4" /></a>)}
         </div>
       </div>
       {groups.map(group => <div key={group.title}>
         <h3 className="font-ar-heading text-sm font-semibold">{group.title}</h3>
         <ul className="mt-4 space-y-2.5 text-sm text-cream/65">
-          {group.links.map(link => <li key={link.label}><a href={link.href} className="transition hover:text-cream">{link.label}</a></li>)}
+          {group.links.map(link => <li key={link.label}><Link to={link.href} className="transition hover:text-cream">{link.label}</Link></li>)}
         </ul>
       </div>)}
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { useLocalized } from '../../hooks/useLocalized'
@@ -76,6 +76,11 @@ export function FilterSidebar({ filters, onChange }: { filters: FiltersState; on
   const { t } = useLocalized()
   const { dir } = useLanguage()
   const [mobileOpen, setMobileOpen] = useState(false)
+  useEffect(() => {
+  const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false) }
+  window.addEventListener('keydown', onKey)
+  return () => window.removeEventListener('keydown', onKey)
+}, [])
 
   return <>
     <aside className="hidden w-64 shrink-0 lg:block">

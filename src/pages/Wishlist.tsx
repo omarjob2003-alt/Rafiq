@@ -4,10 +4,12 @@ import { useWishlist } from '../context/WishlistContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { products } from '../data/products'
 import { ProductCard } from '../components/products/ProductCard'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Wishlist() {
   const { productIds } = useWishlist()
   const { t } = useLocalized()
+  usePageTitle(t('المفضلة', 'Wishlist'))
   const items = products.filter(product => productIds.includes(product.id))
 
   return <div className="pt-[108px]">

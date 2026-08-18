@@ -6,11 +6,14 @@ import { useLocalized } from '../hooks/useLocalized'
 import { products } from '../data/products'
 import { cn } from '../lib/cn'
 import { useOrders } from '../context/OrdersContext'
+import { usePageTitle } from '../hooks/usePageTitle'
+
 
 export function Checkout() {
     const { addOrder } = useOrders()
     const { items, clearCart } = useCart()
     const { t } = useLocalized()
+    usePageTitle(t('إتمام الطلب', 'Checkout'))
     const [shipping, setShipping] = useState<'standard' | 'express'>('standard')
     const [payment, setPayment] = useState<'cod' | 'card'>('cod')
     const [placed, setPlaced] = useState(false)

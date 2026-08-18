@@ -11,7 +11,7 @@ export const collectionStories: Record<string, { titleAr: string; titleEn: strin
     titleEn: 'Order that eases your mind',
     textAr: 'التنظيم مش رفاهية، هو أداة. جمعنا في المجموعة دي كل حاجة تساعدك تلاقي أدواتك بسهولة، وتقلل الفوضى اللي بتشتت تركيزك.',
     textEn: 'Organization is not a luxury, it is a tool. This collection brings together everything that helps you find your tools easily and reduce the clutter that pulls at your focus.',
-    image: 'https://images.unsplash.com/photo-1587613864411-cee1fda9c169?w=1100&q=85&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=1100&q=85&auto=format&fit=crop',
   },
   everyday: {
     titleAr: 'تفاصيل يومك الصغيرة',

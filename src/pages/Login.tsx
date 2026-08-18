@@ -2,10 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLocalized } from '../hooks/useLocalized'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Login() {
   const { login } = useAuth()
   const { t } = useLocalized()
+  usePageTitle(t('تسجيل الدخول', 'Sign in'))
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')

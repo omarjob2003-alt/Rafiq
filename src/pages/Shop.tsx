@@ -8,11 +8,15 @@ import { SortDropdown, type SortValue } from '../components/products/SortDropdow
 import { Pagination } from '../components/products/Pagination'
 import { cn } from '../lib/cn'
 import { useSearchParams } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle'
+
 
 const PAGE_SIZE = 8
 
 export function Shop() {
     const { t } = useLocalized()
+    usePageTitle(t('المتجر', 'Shop'))
+
     const [searchParams] = useSearchParams()
     const [filters, setFilters] = useState<FiltersState>(() => {
         const category = searchParams.get('category')

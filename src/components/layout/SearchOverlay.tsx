@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Search as SearchIcon, X } from 'lucide-react'
 import { useLocalized } from '../../hooks/useLocalized'
@@ -69,13 +69,13 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             <div className="space-y-1">
               {results.products.slice(0, 4).map(product => {
                 const en = productsEn[product.id]
-                return <a key={product.id} href={`/products/${product.id}`} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
+                return <Link key={product.id} to={`/products/${product.id}`} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
                   <img src={product.image} alt="" className="size-12 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? product.name : en.name}</p>
                     <p className="text-xs text-muted dark:text-muted-dark">{product.price} {t('جنيه', 'EGP')}</p>
                   </div>
-                </a>
+                </Link>
               })}
             </div>
           </div>}
@@ -83,10 +83,10 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           {results.collections.length > 0 && <div className="mb-6">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted dark:text-muted-dark">{t('مجموعات', 'Collections')}</p>
             <div className="space-y-1">
-              {results.collections.map(collection => <a key={collection.id} href={collection.href} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
+              {results.collections.map(collection => <Link key={collection.id} to={collection.href} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
                 <img src={collection.image} alt="" className="size-12 rounded-lg object-cover" />
                 <p className="text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? collection.name : collection.nameEn}</p>
-              </a>)}
+              </Link>)}
             </div>
           </div>}
 
@@ -95,10 +95,10 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             <div className="space-y-1">
               {results.articles.slice(0, 3).map(article => {
                 const en = articlesEn[article.id]
-                return <a key={article.id} href={`/journal/${article.id}`} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
+                return <Link key={article.id} to={`/journal/${article.id}`} onClick={onClose} className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-burgundy/5">
                   <img src={article.image} alt="" className="size-12 rounded-lg object-cover" />
                   <p className="truncate text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? article.title : en.title}</p>
-                </a>
+                </Link>
               })}
             </div>
           </div>}

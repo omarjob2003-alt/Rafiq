@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useLocalized } from '../hooks/useLocalized'
 import { AccountLayout } from '../components/account/AccountLayout'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function AccountAddresses() {
   const { t } = useLocalized()
+  usePageTitle(t('عناويني', 'My Addresses'))
   const [saved, setSaved] = useState(false)
 
   return <AccountLayout>

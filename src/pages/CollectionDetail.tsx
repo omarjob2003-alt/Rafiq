@@ -10,6 +10,8 @@ import { ProductCard } from '../components/products/ProductCard'
 import { ArticleCard } from '../components/products/ArticleCard'
 import { ValueProps } from '../components/sections/ValueProps'
 import { NewsletterSection } from '../components/sections/NewsletterSection'
+import { usePageTitle } from '../hooks/usePageTitle'
+
 
 const icons: Record<string, typeof LayoutGrid> = {
   workspace: LayoutGrid,
@@ -21,6 +23,7 @@ const icons: Record<string, typeof LayoutGrid> = {
 export function CollectionDetail() {
   const { collectionId } = useParams()
   const { isArabic, t } = useLocalized()
+  usePageTitle(t('تفاصيل المجموعة', 'Collection Details'))
   const collection = collections.find(item => item.id === collectionId) ?? collections[0]
   const story = collectionStories[collection.id]
   const Icon = icons[collection.id] ?? LayoutGrid

@@ -2,10 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLocalized } from '../hooks/useLocalized'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Register() {
   const { register } = useAuth()
   const { t } = useLocalized()
+  usePageTitle(t('إنشاء حساب', 'Create an account'))
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')

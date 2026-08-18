@@ -6,10 +6,12 @@ import { searchAll } from '../lib/search'
 import { ProductCard } from '../components/products/ProductCard'
 import { CollectionOverviewCard } from '../components/products/CollectionOverviewCard'
 import { ArticleCard } from '../components/products/ArticleCard'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { t } = useLocalized()
+  usePageTitle(t('ابحث في رفيق', 'Search Rafiq'))
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const results = searchAll(searchParams.get('q') ?? '')
   const hasQuery = (searchParams.get('q') ?? '').trim().length > 0
