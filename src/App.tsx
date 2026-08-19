@@ -25,6 +25,7 @@ import { Journal } from './pages/Journal'
 import { JournalDetail } from './pages/JournalDetail'
 import { Contact } from './pages/Contact'
 import { NotFound } from './pages/NotFound'
+import { RecentlyViewed } from './pages/RecentlyViewed'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -63,6 +64,7 @@ function Storefront() {
         <Route path="/journal" element={<Journal />} />
         <Route path="/journal/:articleId" element={<JournalDetail />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/recently-viewed" element={<RecentlyViewed />} />
 
         <Route path="*" element={<NotFound />} />
         {/* <Route path="*" element={<Home />} /> */}

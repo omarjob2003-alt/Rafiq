@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { coupons } from '../data/coupons'
 
 export interface CartLine {
   productId: string
@@ -12,6 +13,9 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
   itemCount: number
+  couponCode: string | null
+  applyCoupon: (code: string) => boolean
+  removeCoupon: () => void
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -25,6 +29,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return []
     }
   })
+
+  const [couponCode, setCouponCode] = useState<string | null>(() => localStorage.getItem('rafiq-coupon'))
+
+  useEffect(() => {
+    if (couponCode) localStorage.setItem('rafiq-coupon', couponCode)
+    else localStorage.removeItem('rafiq-coupon')
+  }, [couponCode])
+
+  const applyCoupon = (code: string) => {
+    const upper = code.trim().toUpperCase()
+    if (!(upper in coupons)) return false
+    setCouponCode(upper)
+    return true
+  }
+  const removeCoupon = () => setCouponCode(null)
 
   useEffect(() => {
     localStorage.setItem('rafiq-cart', JSON.stringify(items))
@@ -47,11 +66,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(prev => prev.map(item => item.productId === productId ? { ...item, quantity } : item))
   }
 
-  const clearCart = () => setItems([])
+  const clearCart = () => { setItems([]); removeCoupon() }
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount, couponCode, applyCoupon, removeCoupon }}>
       {children}
     </CartContext.Provider>
   )

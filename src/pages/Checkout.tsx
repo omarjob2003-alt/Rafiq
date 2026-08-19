@@ -7,11 +7,12 @@ import { products } from '../data/products'
 import { cn } from '../lib/cn'
 import { useOrders } from '../context/OrdersContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { calculateDiscount } from '../data/coupons'
 
 
 export function Checkout() {
     const { addOrder } = useOrders()
-    const { items, clearCart } = useCart()
+    const { items, clearCart, couponCode } = useCart()
     const { t } = useLocalized()
     usePageTitle(t('إتمام الطلب', 'Checkout'))
     const [shipping, setShipping] = useState<'standard' | 'express'>('standard')
@@ -24,8 +25,9 @@ export function Checkout() {
         .filter((line): line is typeof line & { product: NonNullable<typeof line.product> } => Boolean(line.product))
 
     const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
-    const shippingCost = shipping === 'express' ? 90 : subtotal >= 1000 ? 0 : 60
-    const total = subtotal + shippingCost
+    const discountAmount = calculateDiscount(subtotal, couponCode)
+    const shippingCost = shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
+    const total = subtotal - discountAmount + shippingCost
 
     if (!placed && lines.length === 0) return <Navigate to="/cart" replace />
 
@@ -124,6 +126,7 @@ export function Checkout() {
                 </div>
                 <div className="mt-4 space-y-2.5 text-sm">
                     <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span></div>
+                    {couponCode && <div className="flex justify-between text-burgundy"><span>{t(`خصم (${couponCode})`, `Discount (${couponCode})`)}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
                     <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{shippingCost === 0 ? t('مجاني', 'Free') : `${shippingCost} ${t('جنيه', 'EGP')}`}</span></div>
                 </div>
                 <div className="mt-4 flex justify-between border-t border-line pt-4 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">

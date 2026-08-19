@@ -10,6 +10,7 @@ import { MagazineSection } from "../components/sections/MagazineSection";
 import { NewsletterSection } from "../components/sections/NewsletterSection";
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useLocalized } from "../hooks/useLocalized";
+import { RecentlyViewedHomeSection } from "../components/sections/RecentlyViewedHomeSection";
 
 
 export function Home() {
@@ -23,6 +24,7 @@ export function Home() {
       <BrandIntro />
       <CollectionsSection />
       <BestSellers />
+      <RecentlyViewedHomeSection />
       <BeforeAfterSection />
       <BrandStatement />
       <InspirationSection />

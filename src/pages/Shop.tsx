@@ -9,6 +9,7 @@ import { Pagination } from '../components/products/Pagination'
 import { cn } from '../lib/cn'
 import { useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { RecentlyViewedSection } from '../components/products/RecentlyViewedSection'
 
 
 const PAGE_SIZE = 8
@@ -16,6 +17,7 @@ const PAGE_SIZE = 8
 export function Shop() {
     const { t } = useLocalized()
     usePageTitle(t('المتجر', 'Shop'))
+
 
     const [searchParams] = useSearchParams()
     const [filters, setFilters] = useState<FiltersState>(() => {
@@ -56,6 +58,9 @@ export function Shop() {
                 </div>
             </div>
         </section>
+        <section className="mx-auto max-w-[1440px] px-5 pt-8 md:px-10">
+            <RecentlyViewedSection />
+        </section>
 
         <section className="mx-auto max-w-[1440px] px-5 py-10 md:px-10 md:py-14">
             <div className="flex flex-col gap-9 lg:flex-row lg:gap-12">
@@ -63,7 +68,7 @@ export function Shop() {
 
                 <div className="min-w-0 flex-1">
                     <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-                        <div className="lg:hidden"><FilterSidebar filters={filters} onChange={updateFilters} /></div>
+                        {/* <div className="lg:hidden"><FilterSidebar filters={filters} onChange={updateFilters} /></div> */}
                         <p className="text-sm text-muted dark:text-muted-dark">
                             {t(`عرض ${pageItems.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}–${(currentPage - 1) * PAGE_SIZE + pageItems.length} من ${filtered.length} منتج`, `Showing ${pageItems.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}–${(currentPage - 1) * PAGE_SIZE + pageItems.length} of ${filtered.length} products`)}
                         </p>

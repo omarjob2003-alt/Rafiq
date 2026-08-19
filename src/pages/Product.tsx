@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react'
 import { Link, useParams } from "react-router-dom";
 import { Check, ChevronLeft, Heart, Minus, Plus, ShoppingBag, Truck, Undo2 } from "lucide-react";
 import { ProductCard } from "../components/products/ProductCard";
@@ -10,7 +10,12 @@ import { useCart } from "../context/CartContext";
 import { usePageTitle } from '../hooks/usePageTitle'
 import { StarRating } from '../components/ui/StarRating'
 import { getProductRating, getProductReviews } from '../data/reviews'
-
+import { useTrackRecentlyViewed } from '../hooks/useRecentlyViewed'
+import { RecentlyViewedSection } from '../components/products/RecentlyViewedSection'
+import { MobileStickyBuyBar } from '../components/products/MobileStickyBuyBar'
+import { ZoomIn } from 'lucide-react'
+import { ImageLightbox } from '../components/ui/ImageLightbox'
+import { useScrolled } from '../hooks/useScrolled'
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -31,13 +36,13 @@ const sizeOptions = [
   { ar: "60 × 80 سم", en: "60 × 80 cm" },
 ];
 
- const tabs = [
-    { id: "story", ar: "القصة", en: "Story" },
-    { id: "details", ar: "التفاصيل", en: "Details" },
-    { id: "specs", ar: "المواصفات", en: "Specifications" },
-    { id: "reviews", ar: "التقييمات", en: "Reviews" },
-    { id: "shipping", ar: "الشحن والإرجاع", en: "Shipping & returns" },
-  ];
+const tabs = [
+  { id: "story", ar: "القصة", en: "Story" },
+  { id: "details", ar: "التفاصيل", en: "Details" },
+  { id: "specs", ar: "المواصفات", en: "Specifications" },
+  { id: "reviews", ar: "التقييمات", en: "Reviews" },
+  { id: "shipping", ar: "الشحن والإرجاع", en: "Shipping & returns" },
+];
 
 const specs = [
   { ar: ["الخامة", "معدن مطلي ببودرة حرارية"], en: ["Material", "Powder-coated metal"] },
@@ -48,7 +53,7 @@ const specs = [
 
 export function Product() {
   const { addItem } = useCart();
-
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [added, setAdded] = useState(false);
   const { productId } = useParams();
   const { isArabic, t } = useLocalized();
@@ -57,9 +62,10 @@ export function Product() {
   const { dir } = useLanguage();
   const product = products.find((item) => item.id === productId) ?? products[0];
   const copy = productsEn[product.id];
+  useTrackRecentlyViewed(product.id)
   const rating = getProductRating(product.id)
   const reviews = getProductReviews(product.id)
- 
+
 
   const name = isArabic ? product.name : copy.name;
   const description = isArabic ? product.description : copy.description;
@@ -75,8 +81,10 @@ export function Product() {
   const activeColor = colorOptions.find((item) => item.id === colorId) ?? colorOptions[0];
   const activeTab = tabs.find((item) => item.id === tab) ?? tabs[0];
 
+ const showStickyBar = useScrolled(560)
+
   return (
-    <div dir={dir} className="pt-[108px]">
+    <div dir={dir} className="pt-[108px] pb-20 md:pb-0">
       <div className="mx-auto max-w-[1440px] px-5 py-7 md:px-10 md:py-10">
         <nav className="mb-7 flex items-center gap-2 text-xs text-muted dark:text-muted-dark md:mb-10">
           <Link to="/" className="hover:text-burgundy">{t("الرئيسية", "Home")}</Link>
@@ -85,12 +93,17 @@ export function Product() {
           <ChevronLeft size={13} className={isArabic ? "" : "rotate-180"} />
           <span className="text-ink dark:text-ink-dark">{name}</span>
         </nav>
+       
+
 
         <section className="grid gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)] lg:gap-16">
           <div className="lg:order-2">
-            <div className="aspect-[1.08/1] overflow-hidden rounded-2xl bg-[#e7dfd5] dark:bg-paper-dark md:rounded-[26px]">
+            <button onClick={() => setLightboxOpen(true)} className="group relative aspect-[1.08/1] w-full overflow-hidden rounded-2xl bg-[#e7dfd5] dark:bg-paper-dark md:rounded-[26px]">
               <img src={images[activeImage]} alt={name} className="h-full w-full object-cover" />
-            </div>
+              <span className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-cream/90 px-3 py-1.5 text-xs font-medium text-ink opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100 dark:bg-cream-dark/90 dark:text-ink-dark">
+                <ZoomIn size={13} /> {t('تكبير', 'Zoom')}
+              </span>
+            </button>
             <div className="mt-4 grid grid-cols-4 gap-3">
               {images.map((image, index) => (
                 <button key={image + index} onClick={() => setActiveImage(index)} aria-label={t(`صورة ${index + 1}`, `Image ${index + 1}`)} className={cn("aspect-square overflow-hidden rounded-xl border-2 bg-white transition dark:bg-paper-dark", activeImage === index ? "border-burgundy" : "border-transparent hover:border-burgundy/35")}>
@@ -191,8 +204,11 @@ export function Product() {
               )}
             </div>
             <img src={product.image} alt={name} className="aspect-[1.45/1] w-full rounded-2xl object-cover" />
+            
           </div>
+             
         </section>
+       <RecentlyViewedSection excludeId={product.id} />
 
         <section className="border-t border-line pt-10 dark:border-line-dark md:pt-14">
           <div className="mb-7 flex items-end justify-between">
@@ -204,6 +220,16 @@ export function Product() {
           </div>
         </section>
       </div>
+     
+      <MobileStickyBuyBar
+        show={showStickyBar}
+        name={name}
+        price={product.price}
+        currency={isArabic ? product.currency : 'EGP'}
+        image={product.image}
+        onAdd={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
+      />
+      <ImageLightbox open={lightboxOpen} images={images} activeIndex={activeImage} alt={name} onClose={() => setLightboxOpen(false)} onIndexChange={setActiveImage} />
     </div>
   );
 }

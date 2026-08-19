@@ -1,15 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { Minus, Plus, ShoppingBag, Tag, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { products, productsEn } from '../data/products'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { useState } from 'react'
-import { Tag } from 'lucide-react'
-
+import { calculateDiscount } from '../data/coupons'
 
 export function Cart() {
-  const { items, updateQuantity, removeItem } = useCart()
+  const { items, updateQuantity, removeItem, couponCode, applyCoupon, removeCoupon } = useCart()
   const { isArabic, t } = useLocalized()
   usePageTitle(t('سلة رفيق', 'Rafiq Cart'))
 
@@ -19,29 +18,20 @@ export function Cart() {
 
   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
   const [couponInput, setCouponInput] = useState('')
-  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null)
   const [couponError, setCouponError] = useState('')
   const [city, setCity] = useState('cairo')
 
-  const coupons: Record<string, number> = { RAFIQ10: 0.1, WELCOME50: 50 }
-
-  const applyCoupon = () => {
-    const code = couponInput.trim().toUpperCase()
-    if (!code) return
-    if (!(code in coupons)) {
-      setCouponError(t('الكوبون ده مش صحيح.', 'This coupon is not valid.'))
-      setCoupon(null)
-      return
-    }
-    setCouponError('')
-    setCoupon({ code, discount: coupons[code] })
-  }
-
-  const discountAmount = coupon ? (coupon.discount < 1 ? Math.round(subtotal * coupon.discount) : coupon.discount) : 0
+  const discountAmount = calculateDiscount(subtotal, couponCode)
   const estimatedShipping = city === 'cairo' ? (subtotal - discountAmount >= 1000 ? 0 : 60) : 90
   const estimatedTotal = subtotal - discountAmount + estimatedShipping
   const freeShippingThreshold = 1000
   const remaining = Math.max(0, freeShippingThreshold - subtotal)
+
+  const handleApplyCoupon = () => {
+    const success = applyCoupon(couponInput)
+    if (!success) setCouponError(t('الكوبون ده مش صحيح.', 'This coupon is not valid.'))
+    else { setCouponError(''); setCouponInput('') }
+  }
 
   if (lines.length === 0) {
     return <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 pt-[108px] text-center">
@@ -90,12 +80,13 @@ export function Cart() {
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('ملخص الطلب', 'Order summary')}</h2>
           <div className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span></div>
-            {coupon && <div className="flex justify-between text-burgundy"><span>{t('الخصم', 'Discount')}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
+            {couponCode && <div className="flex justify-between text-burgundy"><span>{t('الخصم', 'Discount')}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
             <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن المتوقع', 'Estimated shipping')}</span><span>{estimatedShipping === 0 ? t('مجاني', 'Free') : `${estimatedShipping} ${t('جنيه', 'EGP')}`}</span></div>
           </div>
           {remaining > 0
             ? <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t(`أضف منتجات بـ ${remaining} جنيه كمان للحصول على شحن مجاني.`, `Add ${remaining} EGP more for free shipping.`)}</p>
             : <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t('مبروك، طلبك هيوصلك شحن مجاني.', 'You\u2019ve unlocked free shipping.')}</p>}
+
           <div className="mt-5 space-y-2">
             <p className="text-sm font-medium text-ink dark:text-ink-dark">{t('عندك كوبون؟', 'Have a coupon?')}</p>
             <div className="flex gap-2">
@@ -103,10 +94,10 @@ export function Cart() {
                 <Tag size={14} className="text-muted dark:text-muted-dark" />
                 <input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder={t('كود الخصم', 'Coupon code')} className="w-full bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-muted dark:text-ink-dark dark:placeholder:text-muted-dark" style={{ direction: 'ltr' }} />
               </div>
-              <button onClick={applyCoupon} className="rounded-lg border border-line px-4 text-sm font-medium text-ink transition hover:border-burgundy dark:border-line-dark dark:text-ink-dark">{t('تطبيق', 'Apply')}</button>
+              <button onClick={handleApplyCoupon} className="rounded-lg border border-line px-4 text-sm font-medium text-ink transition hover:border-burgundy dark:border-line-dark dark:text-ink-dark">{t('تطبيق', 'Apply')}</button>
             </div>
             {couponError && <p className="text-xs text-burgundy">{couponError}</p>}
-            {coupon && <p className="text-xs text-burgundy">{t(`تم تطبيق كوبون ${coupon.code} ✓`, `Coupon ${coupon.code} applied ✓`)}</p>}
+            {couponCode && <p className="flex items-center gap-2 text-xs text-burgundy">{t(`تم تطبيق كوبون ${couponCode} ✓`, `Coupon ${couponCode} applied ✓`)}<button onClick={removeCoupon} className="underline">{t('إلغاء', 'Remove')}</button></p>}
           </div>
 
           <div className="mt-5 space-y-2">
@@ -116,6 +107,7 @@ export function Cart() {
               <option value="other">{t('باقي المحافظات', 'Other governorates')}</option>
             </select>
           </div>
+
           <div className="mt-5 flex justify-between border-t border-line pt-5 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
             <span>{t('الإجمالي المتوقع', 'Estimated total')}</span><span>{estimatedTotal} {t('جنيه', 'EGP')}</span>
           </div>

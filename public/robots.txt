@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /account/orders
+Disallow: /account/addresses
+Disallow: /checkout
+Disallow: /cart
+
+Sitemap: https://rafiq.com/sitemap.xml
