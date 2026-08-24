@@ -33,7 +33,7 @@ export function Shop() {
             if (filters.categoryId && product.categoryId !== filters.categoryId) return false
             if (filters.usage.length && !filters.usage.some(tag => product.usage.includes(tag))) return false
             if (filters.colors.length && !filters.colors.some(color => product.colors.includes(color))) return false
-            if (product.price > filters.maxPrice) return false
+            if (product.price < filters.minPrice || product.price > filters.maxPrice) return false
             return true
         })
         if (sort === 'price-asc') result = [...result].sort((a, b) => a.price - b.price)

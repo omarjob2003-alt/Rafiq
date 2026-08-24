@@ -81,7 +81,7 @@ export function Product() {
   const activeColor = colorOptions.find((item) => item.id === colorId) ?? colorOptions[0];
   const activeTab = tabs.find((item) => item.id === tab) ?? tabs[0];
 
- const showStickyBar = useScrolled(560)
+  const showStickyBar = useScrolled(560)
 
   return (
     <div dir={dir} className="pt-[108px] pb-20 md:pb-0">
@@ -93,7 +93,7 @@ export function Product() {
           <ChevronLeft size={13} className={isArabic ? "" : "rotate-180"} />
           <span className="text-ink dark:text-ink-dark">{name}</span>
         </nav>
-       
+
 
 
         <section className="grid gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)] lg:gap-16">
@@ -124,6 +124,9 @@ export function Product() {
             <p className="mt-1 font-en-heading text-lg tracking-wide text-muted dark:text-muted-dark">{isArabic ? product.category : product.categoryId}</p>
             <p className="mt-6 max-w-md text-sm leading-8 text-muted dark:text-muted-dark">{description}</p>
             <p className="mt-5 text-2xl font-semibold text-burgundy">{product.price} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
+            {product.stock !== undefined && product.stock <= 5 && (
+              <p className="mt-2 text-sm font-medium text-burgundy">{t(`باقي ${product.stock} قطع بس في المخزون`, `Only ${product.stock} left in stock`)}</p>
+            )}
 
             <div className="mt-7 space-y-6 border-y border-line py-6 dark:border-line-dark">
               <div>
@@ -204,11 +207,11 @@ export function Product() {
               )}
             </div>
             <img src={product.image} alt={name} className="aspect-[1.45/1] w-full rounded-2xl object-cover" />
-            
+
           </div>
-             
+
         </section>
-       <RecentlyViewedSection excludeId={product.id} />
+        <RecentlyViewedSection excludeId={product.id} />
 
         <section className="border-t border-line pt-10 dark:border-line-dark md:pt-14">
           <div className="mb-7 flex items-end justify-between">
@@ -220,7 +223,7 @@ export function Product() {
           </div>
         </section>
       </div>
-     
+
       <MobileStickyBuyBar
         show={showStickyBar}
         name={name}

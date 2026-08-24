@@ -11,13 +11,24 @@ export interface FiltersState {
   categoryId: string | null
   usage: string[]
   colors: string[]
+  minPrice: number
   maxPrice: number
 }
 
+const MIN_PRICE = 0
 const MAX_PRICE = 2000
 
 export function createDefaultFilters(): FiltersState {
-  return { categoryId: null, usage: [], colors: [], maxPrice: MAX_PRICE }
+  return { categoryId: null, usage: [], colors: [], minPrice: MIN_PRICE, maxPrice: MAX_PRICE }
+}
+
+export function getActiveFilterCount(filters: FiltersState): number {
+  return (
+    (filters.categoryId ? 1 : 0) +
+    filters.usage.length +
+    filters.colors.length +
+    (filters.minPrice > MIN_PRICE || filters.maxPrice < MAX_PRICE ? 1 : 0)
+  )
 }
 
 function FilterFields({ filters, onChange }: { filters: FiltersState; onChange: (next: FiltersState) => void }) {
@@ -52,9 +63,28 @@ function FilterFields({ filters, onChange }: { filters: FiltersState; onChange: 
 
     <div>
       <h3 className="mb-3 font-ar-heading text-sm font-semibold text-ink dark:text-ink-dark">{t('السعر', 'Price')}</h3>
-      <input type="range" min={0} max={MAX_PRICE} step={50} value={filters.maxPrice} onChange={event => onChange({ ...filters, maxPrice: Number(event.target.value) })} className="w-full accent-burgundy" />
+      <div className="relative h-5">
+        <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-line dark:bg-line-dark" />
+        <div
+          className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-burgundy"
+          style={{
+            insetInlineStart: `${(filters.minPrice / MAX_PRICE) * 100}%`,
+            insetInlineEnd: `${100 - (filters.maxPrice / MAX_PRICE) * 100}%`,
+          }}
+        />
+        <input
+          type="range" min={0} max={MAX_PRICE} step={50} value={filters.minPrice}
+          onChange={event => onChange({ ...filters, minPrice: Math.min(Number(event.target.value), filters.maxPrice - 50) })}
+          className="range-thumb absolute inset-x-0 top-1/2 w-full -translate-y-1/2 appearance-none bg-transparent"
+        />
+        <input
+          type="range" min={0} max={MAX_PRICE} step={50} value={filters.maxPrice}
+          onChange={event => onChange({ ...filters, maxPrice: Math.max(Number(event.target.value), filters.minPrice + 50) })}
+          className="range-thumb absolute inset-x-0 top-1/2 w-full -translate-y-1/2 appearance-none bg-transparent"
+        />
+      </div>
       <div className="mt-2 flex justify-between text-xs text-muted dark:text-muted-dark">
-        <span>0 {t('جنيه', 'EGP')}</span>
+        <span>{filters.minPrice} {t('جنيه', 'EGP')}</span>
         <span>{filters.maxPrice} {t('جنيه', 'EGP')}</span>
       </div>
     </div>
@@ -77,10 +107,10 @@ export function FilterSidebar({ filters, onChange }: { filters: FiltersState; on
   const { dir } = useLanguage()
   const [mobileOpen, setMobileOpen] = useState(false)
   useEffect(() => {
-  const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false) }
-  window.addEventListener('keydown', onKey)
-  return () => window.removeEventListener('keydown', onKey)
-}, [])
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   return <>
     <aside className="hidden w-64 shrink-0 lg:block">
@@ -90,6 +120,7 @@ export function FilterSidebar({ filters, onChange }: { filters: FiltersState; on
 
     <button onClick={() => setMobileOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-sm text-ink dark:border-line-dark dark:text-ink-dark lg:hidden">
       <SlidersHorizontal size={16} /> {t('تصفية المنتجات', 'Filters')}
+      {getActiveFilterCount(filters) > 0 && <span className="grid size-4 place-items-center rounded-full bg-burgundy text-[10px] font-bold text-cream">{getActiveFilterCount(filters)}</span>}
     </button>
 
     <AnimatePresence>

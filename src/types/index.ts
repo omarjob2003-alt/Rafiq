@@ -6,6 +6,7 @@ export interface Product {
   currency: string;
   image: string;
   category: string;
+  stock?: number;
 }
 
 export interface Collection {

@@ -26,6 +26,7 @@ export const products: Product[] = [
     categoryId: "organization",
     colors: ["#700D32", "#433E25", "#B9A895"],
     usage: ["office"],
+    stock: 3,
   },
   {
     id: "weekly-calendar",
@@ -65,6 +66,7 @@ export const products: Product[] = [
     categoryId: "organization",
     colors: ["#700D32", "#B9A895"],
     usage: ["daily", "travel"],
+    stock: 4,
   },
   {
     id: "notebook",
@@ -130,6 +132,7 @@ export const products: Product[] = [
     categoryId: "organization",
     colors: ["#700D32", "#433E25"],
     usage: ["office", "travel"],
+    stock: 2,
   },
   {
     id: "storage-box",

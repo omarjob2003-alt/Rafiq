@@ -8,6 +8,7 @@ import { cn } from '../lib/cn'
 import { useOrders } from '../context/OrdersContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { calculateDiscount } from '../data/coupons'
+import { AddressCascadeFields, type AddressLocation } from '../components/checkout/AddressCascadeFields'
 
 
 export function Checkout() {
@@ -20,6 +21,8 @@ export function Checkout() {
     const [placed, setPlaced] = useState(false)
     const [orderNumber, setOrderNumber] = useState('')
 
+    const [location, setLocation] = useState<AddressLocation>({ governorateId: null, cityId: null, customCity: '', district: '' })
+    
     const lines = items
         .map(item => ({ ...item, product: products.find(p => p.id === item.productId) }))
         .filter((line): line is typeof line & { product: NonNullable<typeof line.product> } => Boolean(line.product))
@@ -82,11 +85,10 @@ export function Checkout() {
 
                 <section>
                     <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٢. عنوان الشحن', '2. Shipping address')}</h2>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                        <Field label={t('المحافظة', 'City')} required />
-                        <Field label={t('المنطقة', 'Area')} required />
-                        <Field label={t('العنوان بالتفصيل', 'Street address')} required className="sm:col-span-2" />
-                        <Field label={t('ملاحظات إضافية (اختياري)', 'Additional notes (optional)')} className="sm:col-span-2" />
+                    <div className="mt-4 space-y-4">
+                        <AddressCascadeFields value={location} onChange={setLocation} />
+                        <Field label={t('العنوان بالتفصيل (اسم الشارع ورقم العمارة)', 'Street address (street name & building number)')} required />
+                        <Field label={t('ملاحظات إضافية (اختياري)', 'Additional notes (optional)')} />
                     </div>
                 </section>
 

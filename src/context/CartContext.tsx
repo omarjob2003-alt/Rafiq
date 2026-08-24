@@ -16,6 +16,9 @@ interface CartContextType {
   couponCode: string | null
   applyCoupon: (code: string) => boolean
   removeCoupon: () => void
+  isDrawerOpen: boolean
+  openDrawer: () => void
+  closeDrawer: () => void
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -29,6 +32,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return []
     }
   })
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const openDrawer = () => setIsDrawerOpen(true)
+  const closeDrawer = () => setIsDrawerOpen(false)
 
   const [couponCode, setCouponCode] = useState<string | null>(() => localStorage.getItem('rafiq-coupon'))
 
@@ -50,14 +57,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items])
 
   const addItem = (productId: string, quantity = 1) => {
-    setItems(prev => {
-      const existing = prev.find(item => item.productId === productId)
-      if (existing) {
-        return prev.map(item => item.productId === productId ? { ...item, quantity: item.quantity + quantity } : item)
-      }
-      return [...prev, { productId, quantity }]
-    })
-  }
+  setItems(prev => {
+    const existing = prev.find(item => item.productId === productId)
+    if (existing) {
+      return prev.map(item => item.productId === productId ? { ...item, quantity: item.quantity + quantity } : item)
+    }
+    return [...prev, { productId, quantity }]
+  })
+  setIsDrawerOpen(true)
+}
 
   const removeItem = (productId: string) => setItems(prev => prev.filter(item => item.productId !== productId))
 
@@ -69,11 +77,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => { setItems([]); removeCoupon() }
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
-  return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount, couponCode, applyCoupon, removeCoupon }}>
-      {children}
-    </CartContext.Provider>
-  )
+return (
+  <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount, couponCode, applyCoupon, removeCoupon, isDrawerOpen, openDrawer, closeDrawer }}>
+    {children}
+  </CartContext.Provider>
+)
 }
 
 export function useCart() {

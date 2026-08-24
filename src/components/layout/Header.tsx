@@ -1,4 +1,4 @@
-﻿import { useEffect ,useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart, MapPin, Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -40,7 +40,7 @@ export function Header() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
   const scrolled = useScrolled(14)
-  const { itemCount } = useCart()
+  const { itemCount, openDrawer } = useCart()
   const { language, toggleLanguage } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const isArabic = language === 'ar'
@@ -74,10 +74,10 @@ export function Header() {
               {productIds.length > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-burgundy-dark">{productIds.length}</span>}
             </Link>
             <Link to={user ? '/account' : '/login'} aria-label={t('حسابي', 'Account')} className="hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 md:inline-flex"><User size={18} /></Link>
-            <Link to="/cart" aria-label={t('السلة', 'Cart')} className="relative inline-flex size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75">
+            <button onClick={openDrawer} aria-label={t('السلة', 'Cart')} className="relative inline-flex size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75">
               <ShoppingBag size={19} />
               {itemCount > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-burgundy-dark">{itemCount}</span>}
-            </Link>
+            </button>
             <button onClick={() => setMenuOpen(true)} aria-label={t('القائمة', 'Menu')} className="inline-flex size-9 items-center justify-center rounded-full text-ink/75 lg:hidden dark:text-ink-dark/75"><Menu size={21} /></button>
           </div>
         </div>

@@ -26,6 +26,7 @@ import { JournalDetail } from './pages/JournalDetail'
 import { Contact } from './pages/Contact'
 import { NotFound } from './pages/NotFound'
 import { RecentlyViewed } from './pages/RecentlyViewed'
+import { CartDrawer } from './components/layout/CartDrawer'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -66,11 +67,13 @@ function Storefront() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/recently-viewed" element={<RecentlyViewed />} />
 
+
         <Route path="*" element={<NotFound />} />
         {/* <Route path="*" element={<Home />} /> */}
       </Routes>
     </main>
     {!isCheckout && <Footer />}
+    <CartDrawer />
   </div>
 }
 
