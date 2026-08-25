@@ -1,27 +1,29 @@
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CheckCheck, CircleCheck, MapPin, Package, Search, Truck } from 'lucide-react'
+import { Search } from 'lucide-react'
+import { orderStatuses, getStatusIndex } from '../data/orderStatuses'
 import { useOrders } from '../context/OrdersContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { products } from '../data/products'
 import { cn } from '../lib/cn'
 
-const steps = [
-  { icon: CircleCheck, ar: 'طلبك تم استلامه', en: 'Order received' },
-  { icon: Package, ar: 'جاري التجهيز', en: 'Being prepared' },
-  { icon: Truck, ar: 'تم الشحن', en: 'Shipped' },
-  { icon: MapPin, ar: 'خرج للتوصيل', en: 'Out for delivery' },
-  { icon: CheckCheck, ar: 'تم التسليم', en: 'Delivered' },
-]
 
-function getStepIndex(dateIso: string) {
-  const hoursPassed = (Date.now() - new Date(dateIso).getTime()) / 36e5
-  if (hoursPassed < 2) return 0
-  if (hoursPassed < 24) return 1
-  if (hoursPassed < 48) return 2
-  if (hoursPassed < 72) return 3
-  return 4
-}
+// const steps = [
+//   { icon: CircleCheck, ar: 'طلبك تم استلامه', en: 'Order received' },
+//   { icon: Package, ar: 'جاري التجهيز', en: 'Being prepared' },
+//   { icon: Truck, ar: 'تم الشحن', en: 'Shipped' },
+//   { icon: MapPin, ar: 'خرج للتوصيل', en: 'Out for delivery' },
+//   { icon: CheckCheck, ar: 'تم التسليم', en: 'Delivered' },
+// ]
+
+// function getStepIndex(dateIso: string) {
+//   const hoursPassed = (Date.now() - new Date(dateIso).getTime()) / 36e5
+//   if (hoursPassed < 2) return 0
+//   if (hoursPassed < 24) return 1
+//   if (hoursPassed < 48) return 2
+//   if (hoursPassed < 72) return 3
+//   return 4
+// }
 
 export function TrackOrder() {
   const { orders } = useOrders()
@@ -31,7 +33,7 @@ export function TrackOrder() {
   const [searched, setSearched] = useState(Boolean(searchParams.get('order')))
 
   const order = orders.find(item => item.id.toLowerCase() === orderId.trim().toLowerCase())
-  const stepIndex = order ? getStepIndex(order.date) : -1
+  const stepIndex = order ? getStatusIndex(order.status) : -1
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -70,9 +72,9 @@ export function TrackOrder() {
           </div>
 
           <ol className="relative space-y-8 ps-1">
-            {steps.map((step, index) => {
+            {orderStatuses.map((step, index) => {
               const done = index <= stepIndex
-              const isLast = index === steps.length - 1
+              const isLast = index === orderStatuses.length - 1
               return <li key={step.en} className="relative flex gap-4">
                 {!isLast && <span className={cn('absolute top-9 h-full w-0.5 start-[17px]', done && index < stepIndex ? 'bg-burgundy' : 'bg-line dark:bg-line-dark')} />}
                 <span className={cn('z-10 grid size-9 shrink-0 place-items-center rounded-full transition', done ? 'bg-burgundy text-cream' : 'bg-cream text-muted dark:bg-cream-dark dark:text-muted-dark')}>

@@ -8,12 +8,16 @@ import { CartProvider } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
 import { WishlistProvider } from './context/WishlistContext'
 import { OrdersProvider } from './context/OrdersContext'
+import { AddressBookProvider } from './context/AddressBookContext'
+import { AdminProvider } from './context/AdminContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
+          <AdminProvider>
+          <AddressBookProvider>
           <CartProvider>
             <WishlistProvider>
               <OrdersProvider>
@@ -21,6 +25,8 @@ createRoot(document.getElementById('root')!).render(
               </OrdersProvider>
             </WishlistProvider>
           </CartProvider>
+          </AddressBookProvider>
+          </AdminProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

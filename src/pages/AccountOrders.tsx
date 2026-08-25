@@ -5,9 +5,13 @@ import { useLocalized } from '../hooks/useLocalized'
 import { AccountLayout } from '../components/account/AccountLayout'
 import { products } from '../data/products'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { orderStatuses } from '../data/orderStatuses'
+import { useAuth } from '../context/AuthContext'
 
 export function AccountOrders() {
-    const { orders } = useOrders()
+    const { orders: allOrders } = useOrders()
+    const { user } = useAuth()
+    const orders = allOrders.filter(order => order.userEmail === user?.email)
     const { t, isArabic } = useLocalized()
     usePageTitle(t('طلباتي', 'My orders'))
 
@@ -24,7 +28,7 @@ export function AccountOrders() {
                     {orders.map(order => <div key={order.id} className="rounded-xl border border-line p-4 dark:border-line-dark">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
-                            <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{t('جاري التجهيز', 'Processing')}</span>
+                            <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{isArabic ? orderStatuses.find(s => s.id === order.status)?.ar : orderStatuses.find(s => s.id === order.status)?.en}</span>
                         </div>
                         <p className="mt-1 text-xs text-muted dark:text-muted-dark">{new Date(order.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
                         <div className="mt-3 flex flex-wrap gap-2">

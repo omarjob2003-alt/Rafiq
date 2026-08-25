@@ -27,6 +27,9 @@ import { Contact } from './pages/Contact'
 import { NotFound } from './pages/NotFound'
 import { RecentlyViewed } from './pages/RecentlyViewed'
 import { CartDrawer } from './components/layout/CartDrawer'
+import { AdminLogin } from './pages/AdminLogin'
+import { AdminOrders } from './pages/AdminOrders'
+import { RequireAdmin } from './components/layout/RequireAdmin'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -66,6 +69,9 @@ function Storefront() {
         <Route path="/journal/:articleId" element={<JournalDetail />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/recently-viewed" element={<RecentlyViewed />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/orders" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
+        <Route path="/admin/orders/:orderId" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
 
 
         <Route path="*" element={<NotFound />} />
