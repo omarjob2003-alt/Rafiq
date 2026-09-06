@@ -35,7 +35,7 @@ export function CollectionOverviewCard({ collection, index = 0 }: { collection: 
     className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-paper transition hover:border-burgundy/30 dark:border-line-dark dark:bg-paper-dark sm:flex-row"
   >
     <div className="aspect-[4/3] overflow-hidden sm:aspect-auto sm:w-2/5">
-      <img src={collection.image} alt={isArabic ? collection.name : collection.nameEn} className="size-full object-cover transition duration-700 group-hover:scale-[1.06]" />
+      <img src={collection.image} loading="lazy" alt={isArabic ? collection.name : collection.nameEn} className="size-full object-cover transition duration-700 group-hover:scale-[1.06]" />
     </div>
     <div className="flex flex-1 flex-col justify-between p-6 md:p-8">
       <div>

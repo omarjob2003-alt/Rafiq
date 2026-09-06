@@ -8,6 +8,8 @@ import type { Product } from '../../types'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { useState } from 'react'
+import { Eye } from 'lucide-react'
+import { useQuickView } from '../../context/QuickViewContext'
 
 
 
@@ -15,6 +17,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const [justAdded, setJustAdded] = useState(false)
   const { isArabic, t } = useLocalized()
   const { addItem } = useCart()
+  const { openQuickView } = useQuickView()
   const { isWishlisted, toggle } = useWishlist()
   const wishlisted = isWishlisted(product.id)
   const copy = productsEn[product.id]
@@ -22,7 +25,13 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const description = isArabic ? product.description : copy.description
   return <motion.article initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .55, delay: index * .06 }} className="group">
     <Link to={`/products/${product.id}`} className="relative block aspect-[.96] overflow-hidden rounded-[14px] bg-paper dark:bg-paper-dark" aria-label={t(`عرض ${product.name}`, `View ${copy.name}`)}>
-      <img src={product.image} alt={name} className="size-full object-cover transition duration-700 ease-out group-hover:scale-[1.055]" />
+      <img src={product.image} alt={name} loading="lazy" className="size-full object-cover transition duration-700 ease-out group-hover:scale-[1.055]" />
+      <button
+        onClick={event => { event.preventDefault(); openQuickView(product.id) }}
+        className="absolute inset-x-0 bottom-0 flex translate-y-2 items-center justify-center gap-1.5 bg-ink/70 py-2.5 text-xs font-medium text-cream opacity-0 backdrop-blur-sm transition group-hover:translate-y-0 group-hover:opacity-100"
+      >
+        <Eye size={14} /> {t('معاينة سريعة', 'Quick view')}
+      </button>
       <button onClick={event => { event.preventDefault(); toggle(product.id) }} aria-label={t('أضف للمفضلة', 'Add to wishlist')} className="absolute left-3 top-3 grid size-8 place-items-center rounded-full bg-cream/90 text-ink shadow-sm backdrop-blur transition hover:scale-105 dark:bg-paper-dark/90 dark:text-ink-dark"><Heart size={15} className={cn(wishlisted ? 'fill-burgundy text-burgundy' : '')} /></button>
       <motion.button
         onClick={event => {

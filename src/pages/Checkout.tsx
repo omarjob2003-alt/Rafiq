@@ -12,6 +12,8 @@ import { calculateDiscount } from '../data/coupons'
 import { AddressCascadeFields, type AddressLocation } from '../components/checkout/AddressCascadeFields'
 import { useAddressBook } from '../context/AddressBookContext'
 import { governorates } from '../data/egyptLocations'
+import { markOrderSeen } from '../lib/orderSeenTracker'
+
 
 export function Checkout() {
   const { addOrder } = useOrders()
@@ -76,6 +78,7 @@ export function Checkout() {
       altPhone,
       addressText,
     })
+    markOrderSeen(id, 'received')
 
     if (useNewAddress && saveNewAddress) {
       addAddress({

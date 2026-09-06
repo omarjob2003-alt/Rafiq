@@ -10,6 +10,7 @@ import { WishlistProvider } from './context/WishlistContext'
 import { OrdersProvider } from './context/OrdersContext'
 import { AddressBookProvider } from './context/AddressBookContext'
 import { AdminProvider } from './context/AdminContext'
+import { QuickViewProvider } from './context/QuickViewContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -21,7 +22,9 @@ createRoot(document.getElementById('root')!).render(
           <CartProvider>
             <WishlistProvider>
               <OrdersProvider>
+                <QuickViewProvider>
                 <App />
+                </QuickViewProvider>
               </OrdersProvider>
             </WishlistProvider>
           </CartProvider>

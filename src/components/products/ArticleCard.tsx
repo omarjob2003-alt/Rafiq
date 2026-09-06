@@ -27,7 +27,7 @@ export function ArticleCard({ article, index = 0 }: ArticleCardProps) {
       className="group block"
     >
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
-        <img src={article.image} alt={title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
+        <img src={article.image} loading="lazy" alt={title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]" />
         <span className="absolute top-4 right-4 rounded-full bg-cream/95 px-3 py-1 text-xs font-medium text-burgundy dark:bg-cream-dark/95">{isArabic ? article.category : copy.category}</span>
       </div>
       <h3 className="font-ar-heading text-lg font-semibold text-ink mt-5 leading-snug group-hover:text-burgundy transition-colors dark:text-ink-dark">{title}</h3>

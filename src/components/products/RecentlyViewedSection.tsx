@@ -24,7 +24,7 @@ export function RecentlyViewedSection({ excludeId }: { excludeId?: string }) {
         const name = isArabic ? product.name : productsEn[product.id].name
         return <Link key={product.id} to={`/products/${product.id}`} className="group flex shrink-0 flex-col items-center gap-1.5 w-16">
           <span className="size-14 overflow-hidden rounded-full ring-1 ring-line transition group-hover:ring-burgundy dark:ring-line-dark">
-            <img src={product.image} alt={name} className="size-full object-cover" />
+            <img src={product.image} loading="lazy" alt={name} className="size-full object-cover" />
           </span>
           <span className="line-clamp-1 text-center text-[10px] text-muted transition group-hover:text-burgundy dark:text-muted-dark">{name}</span>
         </Link>

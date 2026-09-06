@@ -30,6 +30,7 @@ import { CartDrawer } from './components/layout/CartDrawer'
 import { AdminLogin } from './pages/AdminLogin'
 import { AdminOrders } from './pages/AdminOrders'
 import { RequireAdmin } from './components/layout/RequireAdmin'
+import { QuickViewModal } from './components/products/QuickViewModal'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -80,6 +81,7 @@ function Storefront() {
     </main>
     {!isCheckout && <Footer />}
     <CartDrawer />
+    <QuickViewModal />
   </div>
 }
 

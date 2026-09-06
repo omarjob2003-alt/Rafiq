@@ -7,11 +7,17 @@ import { products } from '../data/products'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { orderStatuses } from '../data/orderStatuses'
 import { useAuth } from '../context/AuthContext'
+import { useState, useEffect } from 'react'
+import { useOrderStatusUpdates } from '../hooks/useOrderStatusUpdates'
 
 export function AccountOrders() {
     const { orders: allOrders } = useOrders()
     const { user } = useAuth()
     const orders = allOrders.filter(order => order.userEmail === user?.email)
+    const { updatedOrderIds, markAllSeen } = useOrderStatusUpdates(orders)
+    const [highlightedIds] = useState(updatedOrderIds)
+
+    useEffect(() => { markAllSeen() }, [])
     const { t, isArabic } = useLocalized()
     usePageTitle(t('طلباتي', 'My orders'))
 
@@ -25,9 +31,12 @@ export function AccountOrders() {
                     <Link to="/shop" className="rounded-full bg-burgundy px-6 py-2.5 text-sm font-semibold text-cream">{t('تسوق الآن', 'Shop now')}</Link>
                 </div>
                 : <div className="mt-6 space-y-4">
-                    {orders.map(order => <div key={order.id} className="rounded-xl border border-line p-4 dark:border-line-dark">
+                    {orders.map(order => <div key={order.id} className={`rounded-xl border p-4 dark:border-line-dark ${highlightedIds.includes(order.id) ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line'}`}>
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
+                            <div className="flex items-center gap-2">
+                                <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
+                                {highlightedIds.includes(order.id) && <span className="rounded-full bg-burgundy px-2 py-0.5 text-[10px] font-medium text-cream">{t('تحديث جديد', 'Updated')}</span>}
+                            </div>
                             <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{isArabic ? orderStatuses.find(s => s.id === order.status)?.ar : orderStatuses.find(s => s.id === order.status)?.en}</span>
                         </div>
                         <p className="mt-1 text-xs text-muted dark:text-muted-dark">{new Date(order.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
