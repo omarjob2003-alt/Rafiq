@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogOut, Mail, MapPin, Phone, User } from 'lucide-react'
+import { Link, LogOut, Mail, MapPin, Phone, User } from 'lucide-react'
 import { useOrders } from '../context/OrdersContext'
 import { useAdmin } from '../context/AdminContext'
 import { useLocalized } from '../hooks/useLocalized'
@@ -8,6 +8,9 @@ import { orderStatuses, type OrderStatus } from '../data/orderStatuses'
 import { products } from '../data/products'
 import { cn } from '../lib/cn'
 import { Search } from 'lucide-react'
+import { formatPrice } from '../lib/formatPrice'
+import { Package, ShoppingBag, TrendingUp } from 'lucide-react'
+
 
 export function AdminOrders() {
   const { orders, updateStatus } = useOrders()
@@ -19,19 +22,45 @@ export function AdminOrders() {
   const [query, setQuery] = useState('')
 
   // const filtered = filter === 'all' ? orders : orders.filter(order => order.status === filter)
-const filtered = orders
-  .filter(order => filter === 'all' || order.status === filter)
-  .filter(order => {
-    const q = query.trim().toLowerCase()
-    if (!q) return true
-    return (
-      order.id.toLowerCase().includes(q) ||
-      (order.customerName ?? '').toLowerCase().includes(q) ||
-      (order.customerEmail ?? '').toLowerCase().includes(q)
-    )
-  })
+  const filtered = orders
+    .filter(order => filter === 'all' || order.status === filter)
+    .filter(order => {
+      const q = query.trim().toLowerCase()
+      if (!q) return true
+      return (
+        order.id.toLowerCase().includes(q) ||
+        (order.customerName ?? '').toLowerCase().includes(q) ||
+        (order.customerEmail ?? '').toLowerCase().includes(q)
+      )
+    })
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
+  const statusCounts = orderStatuses.map(status => ({ ...status, count: orders.filter(o => o.status === status.id).length }))
 
   return <div className="pt-[108px]">
+
+    <div className="m-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="rounded-xl border border-line p-4 dark:border-line-dark">
+        <span className="grid size-9 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><ShoppingBag size={16} /></span>
+        <p className="mt-3 text-2xl font-semibold text-ink dark:text-ink-dark">{orders.length}</p>
+        <p className="text-xs text-muted dark:text-muted-dark">{t('إجمالي الطلبات', 'Total orders')}</p>
+      </div>
+      <div className="rounded-xl border border-line p-4 dark:border-line-dark">
+        <span className="grid size-9 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><TrendingUp size={16} /></span>
+        <p className="mt-3 text-2xl font-semibold text-ink dark:text-ink-dark">{formatPrice(totalRevenue)}</p>
+        <p className="text-xs text-muted dark:text-muted-dark">{t('إجمالي المبيعات (جنيه)', 'Total revenue (EGP)')}</p>
+      </div>
+      <div className="rounded-xl border border-line p-4 dark:border-line-dark">
+        <span className="grid size-9 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><Package size={16} /></span>
+        <p className="mt-3 text-2xl font-semibold text-ink dark:text-ink-dark">{statusCounts.find(s => s.id === 'processing')?.count ?? 0}</p>
+        <p className="text-xs text-muted dark:text-muted-dark">{t('جاري التجهيز', 'Being prepared')}</p>
+      </div>
+      <div className="rounded-xl border border-line p-4 dark:border-line-dark">
+        <span className="grid size-9 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><Package size={16} /></span>
+        <p className="mt-3 text-2xl font-semibold text-ink dark:text-ink-dark">{statusCounts.find(s => s.id === 'delivered')?.count ?? 0}</p>
+        <p className="text-xs text-muted dark:text-muted-dark">{t('تم التسليم', 'Delivered')}</p>
+      </div>
+    </div>
+
     <div className="mx-auto max-w-[1200px] px-5 py-10 md:px-10 md:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -40,7 +69,10 @@ const filtered = orders
         </div>
         <button onClick={logout} className="inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm text-ink dark:border-line-dark dark:text-ink-dark"><LogOut size={15} /> {t('خروج', 'Log out')}</button>
       </div>
-
+      <div className="mt-2 flex gap-4 text-sm">
+        <span className="font-medium text-burgundy">{t('الطلبات', 'Orders')}</span>
+        <Link to="/admin/subscribers" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المشتركين', 'Subscribers')}</Link>
+      </div>
       <div className="mt-6 flex items-center gap-2 rounded-lg border border-line bg-cream px-3.5 py-2.5 dark:border-line-dark dark:bg-cream-dark">
         <Search size={16} className="text-muted dark:text-muted-dark" />
         <input
@@ -71,7 +103,7 @@ const filtered = orders
                   <p className="text-xs text-muted dark:text-muted-dark">{order.customerName || t('عميل زائر', 'Guest customer')} · {new Date(order.date).toLocaleString(isArabic ? 'ar-EG' : 'en-GB')}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-burgundy">{order.total} {t('جنيه', 'EGP')}</span>
+                  <span className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</span>
                   <select
                     value={order.status}
                     onClick={event => event.stopPropagation()}

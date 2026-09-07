@@ -10,6 +10,7 @@ import { useWishlist } from '../../context/WishlistContext'
 import { useState } from 'react'
 import { Eye } from 'lucide-react'
 import { useQuickView } from '../../context/QuickViewContext'
+import { formatPrice } from '../../lib/formatPrice'
 
 
 
@@ -34,8 +35,10 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       </button>
       <button onClick={event => { event.preventDefault(); toggle(product.id) }} aria-label={t('أضف للمفضلة', 'Add to wishlist')} className="absolute left-3 top-3 grid size-8 place-items-center rounded-full bg-cream/90 text-ink shadow-sm backdrop-blur transition hover:scale-105 dark:bg-paper-dark/90 dark:text-ink-dark"><Heart size={15} className={cn(wishlisted ? 'fill-burgundy text-burgundy' : '')} /></button>
       <motion.button
+        disabled={product.stock === 0}
         onClick={event => {
           event.preventDefault()
+          if (product.stock === 0) return
           addItem(product.id, 1)
           setJustAdded(true)
           setTimeout(() => setJustAdded(false), 1200)
@@ -44,6 +47,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         transition={{ duration: .4, ease: 'easeOut' }}
         aria-label={t('أضف للسلة', 'Add to cart')}
         className={cn(
+          product.stock === 0 && 'cursor-not-allowed opacity-40 grayscale',
           'absolute bottom-3 right-3 grid size-9 place-items-center rounded-full shadow-sm transition-colors sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
           justAdded ? 'bg-burgundy text-cream opacity-100' : 'bg-gold text-burgundy-dark opacity-100 hover:scale-105'
         )}
@@ -58,8 +62,10 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
     <div className="pt-3">
       <div className="flex items-start justify-between gap-2">
         <Link to={`/products/${product.id}`} className="font-ar-heading text-sm font-semibold text-ink transition hover:text-burgundy dark:text-ink-dark">{name}</Link>
-        <span className="shrink-0 text-sm font-semibold text-burgundy">{product.price} {isArabic ? product.currency : 'EGP'}</span>
-        {product.stock !== undefined && product.stock <= 5 && (
+        <span className="shrink-0 text-sm font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</span>
+        {product.stock === 0 ? (
+          <p className="mt-1 text-[11px] font-medium text-muted dark:text-muted-dark">{t('نفد المخزون', 'Out of stock')}</p>
+        ) : product.stock !== undefined && product.stock <= 5 && (
           <p className="mt-1 text-[11px] font-medium text-burgundy">{t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)}</p>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState ,useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { useLocalized } from '../../hooks/useLocalized'
@@ -6,6 +6,9 @@ import { useLanguage } from '../../context/LanguageContext'
 import { collections } from '../../data/collections'
 import { usageTags, colorOptions } from '../../data/filters'
 import { cn } from '../../lib/cn'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useQuickView } from '../../context/QuickViewContext'
+
 
 export interface FiltersState {
   categoryId: string | null
@@ -35,7 +38,7 @@ function FilterFields({ filters, onChange }: { filters: FiltersState; onChange: 
   const { t, isArabic } = useLocalized()
   const toggleUsage = (id: string) => onChange({ ...filters, usage: filters.usage.includes(id) ? filters.usage.filter(item => item !== id) : [...filters.usage, id] })
   const toggleColor = (hex: string) => onChange({ ...filters, colors: filters.colors.includes(hex) ? filters.colors.filter(item => item !== hex) : [...filters.colors, hex] })
-
+    
   return <div className="space-y-7">
     <div>
       <h3 className="mb-3 font-ar-heading text-sm font-semibold text-ink dark:text-ink-dark">{t('الفئة', 'Category')}</h3>
@@ -106,6 +109,9 @@ export function FilterSidebar({ filters, onChange }: { filters: FiltersState; on
   const { t } = useLocalized()
   const { dir } = useLanguage()
   const [mobileOpen, setMobileOpen] = useState(false)
+    const { openProductId } = useQuickView()
+    const trapRef = useRef<HTMLDivElement>(null)
+    useFocusTrap(trapRef, Boolean(openProductId))
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false) }
     window.addEventListener('keydown', onKey)
@@ -125,7 +131,7 @@ export function FilterSidebar({ filters, onChange }: { filters: FiltersState; on
 
     <AnimatePresence>
       {mobileOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-[80] bg-ink/40 backdrop-blur-sm lg:hidden">
-        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: .35, ease: [0.16, 1, 0.3, 1] }} onClick={event => event.stopPropagation()} dir={dir} className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-cream p-6 dark:bg-cream-dark">
+        <motion.div ref={trapRef} initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: .35, ease: [0.16, 1, 0.3, 1] }} onClick={event => event.stopPropagation()} dir={dir} className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-cream p-6 dark:bg-cream-dark">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('تصفية المنتجات', 'Filters')}</h2>
             <button onClick={() => setMobileOpen(false)} aria-label={t('إغلاق', 'Close')} className="grid size-9 place-items-center rounded-full hover:bg-burgundy/5"><X size={18} /></button>

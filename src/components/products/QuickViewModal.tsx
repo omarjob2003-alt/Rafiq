@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart, Minus, Plus, ShoppingBag, X } from 'lucide-react'
@@ -7,9 +7,16 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { products, productsEn } from '../../data/products'
+import { formatPrice } from '../../lib/formatPrice'
+import { cn } from '../../lib/cn'
+
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+
 
 export function QuickViewModal() {
   const { openProductId, closeQuickView } = useQuickView()
+  const trapRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapRef, Boolean(openProductId))
   const { isArabic, t } = useLocalized()
   const { addItem } = useCart()
   const { isWishlisted, toggle } = useWishlist()
@@ -22,6 +29,7 @@ export function QuickViewModal() {
     {product && copy && (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeQuickView} className="fixed inset-0 z-[95] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm">
         <motion.div
+          ref={trapRef}
           initial={{ opacity: 0, scale: .95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: .95, y: 10 }}
@@ -35,17 +43,27 @@ export function QuickViewModal() {
           <div className="relative p-6">
             <button onClick={closeQuickView} aria-label={t('إغلاق', 'Close')} className="absolute end-4 top-4 grid size-8 place-items-center rounded-full hover:bg-burgundy/5"><X size={17} /></button>
             <h2 className="font-ar-heading text-2xl font-semibold text-ink dark:text-ink-dark">{isArabic ? product.name : copy.name}</h2>
-            <p className="mt-3 text-xl font-semibold text-burgundy">{product.price} {isArabic ? product.currency : 'EGP'}</p>
+            <p className="mt-3 text-xl font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</p>
+            {product.stock === 0 && <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{t('نفد المخزون حاليًا', 'Currently out of stock')}</p>}
             <p className="mt-3 text-sm leading-7 text-muted dark:text-muted-dark">{isArabic ? product.description : copy.description}</p>
             <div className="mt-4 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-3 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
 
             <div className="mt-6 flex items-center gap-3">
-              <div className="flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark">
-                <button onClick={() => setQuantity(v => Math.max(1, v - 1))} className="p-2.5 text-muted hover:text-burgundy dark:text-muted-dark"><Minus size={15} /></button>
+              <div className={cn('flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark', product.stock === 0 && 'opacity-40')}>
+                <button disabled={product.stock === 0} onClick={() => setQuantity(v => Math.max(1, v - 1))} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Minus size={15} /></button>
                 <span className="w-8 text-center text-sm text-ink dark:text-ink-dark">{quantity}</span>
-                <button onClick={() => setQuantity(v => v + 1)} className="p-2.5 text-muted hover:text-burgundy dark:text-muted-dark"><Plus size={15} /></button>
+                <button disabled={product.stock === 0} onClick={() => setQuantity(v => v + 1)} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Plus size={15} /></button>
               </div>
-              <button onClick={() => { addItem(product.id, quantity); closeQuickView() }} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-burgundy px-4 py-3 text-sm font-medium text-cream transition hover:bg-burgundy-dark"><ShoppingBag size={16} /> {t('أضف للسلة', 'Add to cart')}</button>
+              <button
+                disabled={product.stock === 0}
+                onClick={() => { addItem(product.id, quantity); closeQuickView() }}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition',
+                  product.stock === 0 ? 'cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark' : 'bg-burgundy text-cream hover:bg-burgundy-dark'
+                )}
+              >
+                <ShoppingBag size={16} /> {product.stock === 0 ? t('غير متاح', 'Unavailable') : t('أضف للسلة', 'Add to cart')}
+              </button>
               <button onClick={() => toggle(product.id)} aria-label={t('المفضلة', 'Wishlist')} className="grid size-11 shrink-0 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={17} className={isWishlisted(product.id) ? 'fill-burgundy' : ''} /></button>
             </div>
 

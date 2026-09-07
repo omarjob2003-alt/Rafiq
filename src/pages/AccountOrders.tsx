@@ -9,6 +9,7 @@ import { orderStatuses } from '../data/orderStatuses'
 import { useAuth } from '../context/AuthContext'
 import { useState, useEffect } from 'react'
 import { useOrderStatusUpdates } from '../hooks/useOrderStatusUpdates'
+import { formatPrice } from '../lib/formatPrice'
 
 export function AccountOrders() {
     const { orders: allOrders } = useOrders()
@@ -47,7 +48,7 @@ export function AccountOrders() {
                             })}
                         </div>
                         <div className="mt-3 flex items-center justify-between">
-                            <p className="text-sm font-semibold text-burgundy">{order.total} {t('جنيه', 'EGP')}</p>
+                            <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
                             <Link to={`/track-order?order=${order.id}`} className="text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">{t('تتبع الطلب', 'Track order')}</Link>
                         </div>
                     </div>)}

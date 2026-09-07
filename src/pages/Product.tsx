@@ -16,6 +16,7 @@ import { MobileStickyBuyBar } from '../components/products/MobileStickyBuyBar'
 import { ZoomIn } from 'lucide-react'
 import { ImageLightbox } from '../components/ui/ImageLightbox'
 import { useScrolled } from '../hooks/useScrolled'
+import { formatPrice } from '../lib/formatPrice';
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -123,8 +124,10 @@ export function Product() {
             </button>
             <p className="mt-1 font-en-heading text-lg tracking-wide text-muted dark:text-muted-dark">{isArabic ? product.category : product.categoryId}</p>
             <p className="mt-6 max-w-md text-sm leading-8 text-muted dark:text-muted-dark">{description}</p>
-            <p className="mt-5 text-2xl font-semibold text-burgundy">{product.price} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
-            {product.stock !== undefined && product.stock <= 5 && (
+            <p className="mt-5 text-2xl font-semibold text-burgundy">{formatPrice(product.price)} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
+            {product.stock === 0 ? (
+              <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{t('نفد المخزون حاليًا', 'Currently out of stock')}</p>
+            ) : product.stock !== undefined && product.stock <= 5 && (
               <p className="mt-2 text-sm font-medium text-burgundy">{t(`باقي ${product.stock} قطع بس في المخزون`, `Only ${product.stock} left in stock`)}</p>
             )}
 
@@ -156,9 +159,15 @@ export function Product() {
             </div>
 
             <div className="mt-6 flex gap-3">
-              <button onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-burgundy px-5 py-4 text-sm font-medium text-cream transition hover:bg-burgundy-dark">
-                {added ? <Check size={18} /> : <ShoppingBag size={18} />}
-                {added ? t("تمت الإضافة", "Added") : t("أضف إلى السلة", "Add to cart")}
+              <button
+                disabled={product.stock === 0}
+                onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-4 text-sm font-medium transition",
+                  product.stock === 0 ? "cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark" : "bg-burgundy text-cream hover:bg-burgundy-dark"
+                )}
+              >
+                {product.stock === 0 ? t("غير متاح حاليًا", "Currently unavailable") : added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{t("أضف إلى السلة", "Add to cart")}</>}
               </button>
               <button onClick={() => setWishlisted((value) => !value)} aria-label={t("إضافة للمفضلة", "Add to wishlist")} className="grid w-14 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={19} className={wishlisted ? "fill-burgundy" : ""} /></button>
             </div>
@@ -225,7 +234,7 @@ export function Product() {
       </div>
 
       <MobileStickyBuyBar
-        show={showStickyBar}
+        show={showStickyBar && product.stock !== 0}
         name={name}
         price={product.price}
         currency={isArabic ? product.currency : 'EGP'}

@@ -6,8 +6,14 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { productsEn } from '../../data/products'
 import { articlesEn } from '../../data/content'
 import { searchAll } from '../../lib/search'
+import { formatPrice } from '../../lib/formatPrice'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useQuickView } from '../../context/QuickViewContext'
 
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { openProductId, closeQuickView } = useQuickView()
+  const trapRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapRef, Boolean(openProductId))
   const { isArabic, t } = useLocalized()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -37,8 +43,9 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return <AnimatePresence>
-    {open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[75] bg-ink/40 backdrop-blur-sm">
+    {open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeQuickView} className="fixed inset-0 z-[75] bg-ink/40 backdrop-blur-sm">
       <motion.div
+        ref={trapRef}
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -16 }}
@@ -73,7 +80,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                   <img src={product.image} alt="" className="size-12 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? product.name : en.name}</p>
-                    <p className="text-xs text-muted dark:text-muted-dark">{product.price} {t('جنيه', 'EGP')}</p>
+                    <p className="text-xs text-muted dark:text-muted-dark">{formatPrice(product.price)} {t('جنيه', 'EGP')}</p>
                   </div>
                 </Link>
               })}

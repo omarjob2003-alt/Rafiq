@@ -6,6 +6,7 @@ import { useLocalized } from '../hooks/useLocalized'
 import { products, productsEn } from '../data/products'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { calculateDiscount } from '../data/coupons'
+import { formatPrice } from '../lib/formatPrice'
 
 export function Cart() {
   const { items, updateQuantity, removeItem, couponCode, applyCoupon, removeCoupon } = useCart()
@@ -59,7 +60,7 @@ export function Cart() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <Link to={`/products/${line.product.id}`} className="font-ar-heading text-base font-semibold text-ink hover:text-burgundy dark:text-ink-dark">{name}</Link>
-                    <p className="mt-1 text-sm text-muted dark:text-muted-dark">{line.product.price} {t('جنيه', 'EGP')}</p>
+                    <p className="mt-1 text-sm text-muted dark:text-muted-dark">{formatPrice(line.product.price)} {t('جنيه', 'EGP')}</p>
                   </div>
                   <button onClick={() => removeItem(line.productId)} aria-label={t('إزالة', 'Remove')} className="text-muted transition hover:text-burgundy dark:text-muted-dark"><Trash2 size={17} /></button>
                 </div>
@@ -69,7 +70,7 @@ export function Cart() {
                     <span className="w-7 text-center text-sm text-ink dark:text-ink-dark">{line.quantity}</span>
                     <button onClick={() => updateQuantity(line.productId, line.quantity + 1)} aria-label={t('زيادة الكمية', 'Increase quantity')} className="p-2 text-muted hover:text-burgundy dark:text-muted-dark"><Plus size={14} /></button>
                   </div>
-                  <p className="text-sm font-semibold text-burgundy">{line.product.price * line.quantity} {t('جنيه', 'EGP')}</p>
+                  <p className="text-sm font-semibold text-burgundy">{formatPrice(line.product.price * line.quantity)} {t('جنيه', 'EGP')}</p>
                 </div>
               </div>
             </div>
@@ -79,12 +80,12 @@ export function Cart() {
         <aside className="h-fit rounded-2xl border border-line bg-paper p-6 dark:border-line-dark dark:bg-paper-dark">
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('ملخص الطلب', 'Order summary')}</h2>
           <div className="mt-5 space-y-3 text-sm">
-            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span></div>
-            {couponCode && <div className="flex justify-between text-burgundy"><span>{t('الخصم', 'Discount')}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
-            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن المتوقع', 'Estimated shipping')}</span><span>{estimatedShipping === 0 ? t('مجاني', 'Free') : `${estimatedShipping} ${t('جنيه', 'EGP')}`}</span></div>
+            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{formatPrice(subtotal)} {t('جنيه', 'EGP')}</span></div>
+            {couponCode && <div className="flex justify-between text-burgundy"><span>{t('الخصم', 'Discount')}</span><span>-{formatPrice(discountAmount)} {t('جنيه', 'EGP')}</span></div>}
+            <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن المتوقع', 'Estimated shipping')}</span><span>{formatPrice(estimatedShipping === 0 ? 0 : estimatedShipping)} {t('جنيه', 'EGP')}</span></div>
           </div>
           {remaining > 0
-            ? <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t(`أضف منتجات بـ ${remaining} جنيه كمان للحصول على شحن مجاني.`, `Add ${remaining} EGP more for free shipping.`)}</p>
+            ? <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t(`أضف منتجات بـ ${formatPrice(remaining)} جنيه كمان للحصول على شحن مجاني.`, `Add ${formatPrice(remaining)} EGP more for free shipping.`)}</p>
             : <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t('مبروك، طلبك هيوصلك شحن مجاني.', 'You\u2019ve unlocked free shipping.')}</p>}
 
           <div className="mt-5 space-y-2">
@@ -109,7 +110,7 @@ export function Cart() {
           </div>
 
           <div className="mt-5 flex justify-between border-t border-line pt-5 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
-            <span>{t('الإجمالي المتوقع', 'Estimated total')}</span><span>{estimatedTotal} {t('جنيه', 'EGP')}</span>
+            <span>{t('الإجمالي المتوقع', 'Estimated total')}</span><span>{formatPrice(estimatedTotal)} {t('جنيه', 'EGP')}</span>
           </div>
           <Link to="/checkout" className="mt-6 flex w-full items-center justify-center rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('إتمام الطلب', 'Checkout')}</Link>
           <Link to="/shop" className="mt-3 flex w-full items-center justify-center text-sm text-muted hover:text-burgundy dark:text-muted-dark">{t('متابعة التسوق', 'Continue shopping')}</Link>

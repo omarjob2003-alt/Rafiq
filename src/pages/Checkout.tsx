@@ -13,6 +13,7 @@ import { AddressCascadeFields, type AddressLocation } from '../components/checko
 import { useAddressBook } from '../context/AddressBookContext'
 import { governorates } from '../data/egyptLocations'
 import { markOrderSeen } from '../lib/orderSeenTracker'
+import { formatPrice } from '../lib/formatPrice'
 
 
 export function Checkout() {
@@ -185,8 +186,8 @@ export function Checkout() {
         <section>
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٣. طريقة الشحن', '3. Shipping method')}</h2>
           <div className="mt-4 space-y-3">
-            <OptionRow icon={Truck} active={shipping === 'standard'} onClick={() => setShipping('standard')} title={t('شحن عادي', 'Standard shipping')} subtitle={t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={subtotal >= 1000 ? t('مجاني', 'Free') : `60 ${t('جنيه', 'EGP')}`} />
-            <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={`90 ${t('جنيه', 'EGP')}`} />
+            <OptionRow icon={Truck} active={shipping === 'standard'} onClick={() => setShipping('standard')} title={t('شحن عادي', 'Standard shipping')} subtitle={t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={formatPrice(subtotal >= 1000 ? 0 : 60)} />
+            <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={formatPrice(90)} />
           </div>
         </section>
 
@@ -217,12 +218,12 @@ export function Checkout() {
           </div>)}
         </div>
         <div className="mt-4 space-y-2.5 text-sm">
-          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{subtotal} {t('جنيه', 'EGP')}</span></div>
-          {couponCode && <div className="flex justify-between text-burgundy"><span>{t(`خصم (${couponCode})`, `Discount (${couponCode})`)}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
-          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{shippingCost === 0 ? t('مجاني', 'Free') : `${shippingCost} ${t('جنيه', 'EGP')}`}</span></div>
+          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{formatPrice(subtotal)} {t('جنيه', 'EGP')}</span></div>
+          {couponCode && <div className="flex justify-between text-burgundy"><span>{t(`خصم (${couponCode})`, `Discount (${couponCode})`)}</span><span>-{formatPrice(discountAmount)} {t('جنيه', 'EGP')}</span></div>}
+          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{formatPrice(shippingCost === 0 ? 0 : shippingCost)} {t('جنيه', 'EGP')}</span></div>
         </div>
         <div className="mt-4 flex justify-between border-t border-line pt-4 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
-          <span>{t('الإجمالي', 'Total')}</span><span>{total} {t('جنيه', 'EGP')}</span>
+          <span>{t('الإجمالي', 'Total')}</span><span>{formatPrice(total)} {t('جنيه', 'EGP')}</span>
         </div>
         <button type="submit" className="mt-6 w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('تأكيد الطلب', 'Place order')}</button>
       </aside>

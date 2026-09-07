@@ -6,6 +6,7 @@ import { useOrders } from '../context/OrdersContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { products } from '../data/products'
 import { cn } from '../lib/cn'
+import { formatPrice } from '../lib/formatPrice'
 
 
 // const steps = [
@@ -68,7 +69,7 @@ export function TrackOrder() {
               <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
               <p className="text-xs text-muted dark:text-muted-dark">{new Date(order.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
             </div>
-            <p className="text-sm font-semibold text-burgundy">{order.total} {t('جنيه', 'EGP')}</p>
+            <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
           </div>
 
           <ol className="relative space-y-8 ps-1">
@@ -97,7 +98,7 @@ export function TrackOrder() {
                 return <div key={line.productId} className="flex items-center gap-3 text-sm">
                   <img src={product.image} alt="" className="size-10 rounded-lg object-cover" />
                   <span className="flex-1 text-ink/80 dark:text-ink-dark/80">{product.name} × {line.quantity}</span>
-                  <span className="text-ink dark:text-ink-dark">{line.price * line.quantity} {t('جنيه', 'EGP')}</span>
+                  <span className="text-ink dark:text-ink-dark">{formatPrice(line.price * line.quantity)} {t('جنيه', 'EGP')}</span>
                 </div>
               })}
             </div>

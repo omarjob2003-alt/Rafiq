@@ -106,6 +106,7 @@ export const products: Product[] = [
     categoryId: "essentials",
     colors: ["#1F1B19"],
     usage: ["office", "daily"],
+    stock: 0,
   },
   {
     id: "tote-bag",

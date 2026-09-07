@@ -31,6 +31,7 @@ import { AdminLogin } from './pages/AdminLogin'
 import { AdminOrders } from './pages/AdminOrders'
 import { RequireAdmin } from './components/layout/RequireAdmin'
 import { QuickViewModal } from './components/products/QuickViewModal'
+import { AdminSubscribers } from './pages/AdminSubscribers'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -73,6 +74,7 @@ function Storefront() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/orders" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
         <Route path="/admin/orders/:orderId" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
+        <Route path="/admin/subscribers" element={<RequireAdmin><AdminSubscribers /></RequireAdmin>} />
 
 
         <Route path="*" element={<NotFound />} />

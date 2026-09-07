@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState , useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Moon, Sun, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -9,12 +9,17 @@ import { useAuth } from '../../context/AuthContext'
 import { collections } from '../../data/collections'
 import { cn } from '../../lib/cn'
 import { Logo } from '../ui/Logo'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useQuickView } from '../../context/QuickViewContext'
 
 interface MenuLink { label: string; href: string }
 interface MenuSubmenu { id: string; label: string; children: MenuLink[] }
 type MenuItem = ({ type: 'link' } & MenuLink) | ({ type: 'submenu' } & MenuSubmenu)
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { openProductId, closeQuickView } = useQuickView()
+  const trapRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapRef, Boolean(openProductId))
   const { language, dir, toggleLanguage } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const { productIds } = useWishlist()
@@ -59,8 +64,9 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
 
   return <AnimatePresence>
     {open && (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeAll} className="fixed inset-0 z-[70] bg-ink/40 backdrop-blur-sm">
+      <motion.div onClick={closeQuickView} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} /*onClick={closeAll}*/ className="fixed inset-0 z-[70] bg-ink/40 backdrop-blur-sm">
         <motion.aside
+          ref={trapRef}
           initial={{ x: isArabic ? '100%' : '-100%' }}
           animate={{ x: 0 }}
           exit={{ x: isArabic ? '100%' : '-100%' }}

@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react'
 import { useLocalized } from '../../hooks/useLocalized'
 import { useLanguage } from '../../context/LanguageContext'
 import { cn } from '../../lib/cn'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useQuickView } from '../../context/QuickViewContext'
 
 interface ImageLightboxProps {
   open: boolean
@@ -20,6 +22,9 @@ export function ImageLightbox({ open, images, activeIndex, alt, onClose, onIndex
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const dragState = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null)
+  const { openProductId, closeQuickView } = useQuickView()
+  const trapRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapRef, Boolean(openProductId))
 
   useEffect(() => {
     if (open) { setZoom(1); setPan({ x: 0, y: 0 }) }
@@ -57,7 +62,7 @@ export function ImageLightbox({ open, images, activeIndex, alt, onClose, onIndex
 
   return <AnimatePresence>
     {open && (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-sm">
+      <motion.div ref={trapRef} initial={{ opacity: 0 }} onClick={closeQuickView} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-sm">
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
             <button onClick={() => setZoom(z => Math.max(1, z - .5))} aria-label={t('تصغير', 'Zoom out')} className="grid size-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"><Minus size={18} /></button>

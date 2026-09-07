@@ -7,8 +7,16 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { products, productsEn } from '../../data/products'
 import { calculateDiscount } from '../../data/coupons'
 import { cn } from '../../lib/cn'
+import { formatPrice } from '../../lib/formatPrice'
+import { useRef/*, useState*/ } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useQuickView } from '../../context/QuickViewContext'
+
 
 export function CartDrawer() {
+    const { openProductId, closeQuickView } = useQuickView()
+  const trapRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(trapRef, Boolean(openProductId))
   const { items, updateQuantity, removeItem, isDrawerOpen, closeDrawer, couponCode } = useCart()
   const { isArabic, t } = useLocalized()
   const { dir } = useLanguage()
@@ -22,8 +30,9 @@ export function CartDrawer() {
   const total = subtotal - discountAmount
 
   return <AnimatePresence>
-    {isDrawerOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDrawer} className="fixed inset-0 z-[85] bg-ink/40 backdrop-blur-sm">
+    {isDrawerOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeQuickView} className="fixed inset-0 z-[85] bg-ink/40 backdrop-blur-sm">
       <motion.aside
+        ref={trapRef}
         initial={{ x: dir === 'rtl' ? '100%' : '-100%' }}
         animate={{ x: 0 }}
         exit={{ x: dir === 'rtl' ? '100%' : '-100%' }}
@@ -69,9 +78,9 @@ export function CartDrawer() {
             </div>
 
             <div className="border-t border-line p-5 dark:border-line-dark">
-              {couponCode && <div className="mb-2 flex justify-between text-xs text-burgundy"><span>{t('خصم', 'Discount')}</span><span>-{discountAmount} {t('جنيه', 'EGP')}</span></div>}
+              {couponCode && <div className="mb-2 flex justify-between text-xs text-burgundy"><span>{t('خصم', 'Discount')}</span><span>-{formatPrice(discountAmount)} {t('جنيه', 'EGP')}</span></div>}
               <div className="mb-4 flex justify-between text-base font-semibold text-ink dark:text-ink-dark">
-                <span>{t('الإجمالي', 'Total')}</span><span>{total} {t('جنيه', 'EGP')}</span>
+                <span>{t('الإجمالي', 'Total')}</span><span>{formatPrice(total)} {t('جنيه', 'EGP')}</span>
               </div>
               <Link to="/checkout" onClick={closeDrawer} className="mb-2.5 flex w-full items-center justify-center rounded-lg bg-burgundy py-3 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('إتمام الطلب', 'Checkout')}</Link>
               <Link to="/cart" onClick={closeDrawer} className="flex w-full items-center justify-center text-sm text-muted hover:text-burgundy dark:text-muted-dark">{t('عرض السلة كاملة', 'View full cart')}</Link>
