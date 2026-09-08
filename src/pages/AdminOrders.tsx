@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, LogOut, Mail, MapPin, Phone, User } from 'lucide-react'
+import { Mail, MapPin, Phone, User } from 'lucide-react'
 import { useOrders } from '../context/OrdersContext'
 import { useAdmin } from '../context/AdminContext'
 import { useLocalized } from '../hooks/useLocalized'
@@ -10,6 +10,9 @@ import { cn } from '../lib/cn'
 import { Search } from 'lucide-react'
 import { formatPrice } from '../lib/formatPrice'
 import { Package, ShoppingBag, TrendingUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
+
 
 
 export function AdminOrders() {
@@ -72,6 +75,7 @@ export function AdminOrders() {
       <div className="mt-2 flex gap-4 text-sm">
         <span className="font-medium text-burgundy">{t('الطلبات', 'Orders')}</span>
         <Link to="/admin/subscribers" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المشتركين', 'Subscribers')}</Link>
+        <Link to="/admin/messages" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('الرسائل', 'Messages')}</Link>
       </div>
       <div className="mt-6 flex items-center gap-2 rounded-lg border border-line bg-cream px-3.5 py-2.5 dark:border-line-dark dark:bg-cream-dark">
         <Search size={16} className="text-muted dark:text-muted-dark" />

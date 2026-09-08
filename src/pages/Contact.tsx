@@ -4,7 +4,8 @@ import { useLocalized } from '../hooks/useLocalized'
 import { SectionHeading } from '../components/ui/SectionHeading'
 import { cn } from '../lib/cn'
 import { InstagramIcon, FacebookIcon, TiktokIcon } from '../components/ui/SocialIcons'
-import { usePageTitle } from '../hooks/usePageTitle'
+// import { usePageTitle } from '../hooks/usePageTitle'
+import { addMessage } from '../lib/messages'
 
 const faqs = [
     { ar: ['كام مدة التوصيل؟', 'التوصيل بياخد من يومين لأربعة أيام عمل جوه القاهرة والجيزة، ومن ٤ لـ٦ أيام لباقي المحافظات.'], en: ['How long does delivery take?', 'Delivery takes 2 to 4 business days within Cairo and Giza, and 4 to 6 days for other governorates.'] },
@@ -15,12 +16,16 @@ const faqs = [
 
 export function Contact() {
     const { t } = useLocalized()
-    usePageTitle(t('تواصل معنا', 'Contact Us'))
     const [openFaq, setOpenFaq] = useState<number | null>(null)
     const [sent, setSent] = useState(false)
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [subject, setSubject] = useState('')
+    const [message, setMessage] = useState('')
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault()
+        addMessage({ name, email, subject, message })
         setSent(true)
     }
 
@@ -64,28 +69,28 @@ export function Contact() {
                     {sent ? (
                         <div className="flex flex-col items-center gap-3 py-10 text-center">
                             <span className="grid size-12 place-items-center rounded-full bg-burgundy/[.08] text-burgundy dark:bg-burgundy/20">✓</span>
-                            <h2 className="font-ar-heading text-xl font-semibold text-ink dark:text-ink-dark">{t('وصلتنا رسالتك', 'Your message is on its way')}</h2>
-                            <p className="max-w-xs text-sm text-muted dark:text-muted-dark">{t('هنرد عليك خلال يوم عمل واحد.', 'We will get back to you within one business day.')}</p>
+                            <h2 className="font-ar-heading text-xl font-semibold text-ink dark:text-ink-dark">{t('وصلتنا رسالتك، شكرًا ليك', 'Your message reached us, thank you')}</h2>
+                            <p className="max-w-xs text-sm text-muted dark:text-muted-dark">{t('اقتراحاتك بتفرق معانا فعلاً، وهنرد عليك على بريدك خلال يوم عمل.', 'Your feedback genuinely matters to us, and we will reply to your email within one business day.')}</p>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <label className="block text-sm">
                                     <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الاسم', 'Name')}</span>
-                                    <input required className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+                                    <input required value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
                                 </label>
                                 <label className="block text-sm">
                                     <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('البريد الإلكتروني', 'Email')}</span>
-                                    <input type="email" required className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+                                    <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
                                 </label>
                             </div>
                             <label className="block text-sm">
                                 <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الموضوع', 'Subject')}</span>
-                                <input required className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+                                <input required value={subject} onChange={e => setSubject(e.target.value)} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
                             </label>
                             <label className="block text-sm">
                                 <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الرسالة', 'Message')}</span>
-                                <textarea required rows={5} className="w-full resize-none rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+                                <textarea required rows={5} value={message} onChange={e => setMessage(e.target.value)} className="w-full resize-none rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
                             </label>
                             <button type="submit" className="rounded-lg bg-burgundy px-7 py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('إرسال الرسالة', 'Send message')}</button>
                         </form>
