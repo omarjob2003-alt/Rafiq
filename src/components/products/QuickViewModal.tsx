@@ -9,6 +9,7 @@ import { useWishlist } from '../../context/WishlistContext'
 import { products, productsEn } from '../../data/products'
 import { formatPrice } from '../../lib/formatPrice'
 import { cn } from '../../lib/cn'
+import { availabilityLabels, isPurchasable } from '../../data/availability'
 
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
@@ -24,6 +25,8 @@ export function QuickViewModal() {
 
   const product = products.find(p => p.id === openProductId)
   const copy = product ? productsEn[product.id] : null
+  const purchasable = product ? isPurchasable(product.availability) : true
+  const availabilityInfo = product?.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
 
   return <AnimatePresence>
     {product && copy && (
@@ -44,25 +47,25 @@ export function QuickViewModal() {
             <button onClick={closeQuickView} aria-label={t('إغلاق', 'Close')} className="absolute end-4 top-4 grid size-8 place-items-center rounded-full hover:bg-burgundy/5"><X size={17} /></button>
             <h2 className="font-ar-heading text-2xl font-semibold text-ink dark:text-ink-dark">{isArabic ? product.name : copy.name}</h2>
             <p className="mt-3 text-xl font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</p>
-            {product.stock === 0 && <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{t('نفد المخزون حاليًا', 'Currently out of stock')}</p>}
+            {availabilityInfo && <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{isArabic ? availabilityInfo.ar : availabilityInfo.en}</p>}
             <p className="mt-3 text-sm leading-7 text-muted dark:text-muted-dark">{isArabic ? product.description : copy.description}</p>
             <div className="mt-4 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-3 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
 
             <div className="mt-6 flex items-center gap-3">
-              <div className={cn('flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark', product.stock === 0 && 'opacity-40')}>
-                <button disabled={product.stock === 0} onClick={() => setQuantity(v => Math.max(1, v - 1))} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Minus size={15} /></button>
+              <div className={cn('flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark', !purchasable && 'opacity-40')}>
+                <button disabled={!purchasable} onClick={() => setQuantity(v => Math.max(1, v - 1))} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Minus size={15} /></button>
                 <span className="w-8 text-center text-sm text-ink dark:text-ink-dark">{quantity}</span>
-                <button disabled={product.stock === 0} onClick={() => setQuantity(v => v + 1)} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Plus size={15} /></button>
+                <button disabled={!purchasable} onClick={() => setQuantity(v => v + 1)} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Plus size={15} /></button>
               </div>
               <button
-                disabled={product.stock === 0}
+                disabled={!purchasable}
                 onClick={() => { addItem(product.id, quantity); closeQuickView() }}
                 className={cn(
                   'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition',
-                  product.stock === 0 ? 'cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark' : 'bg-burgundy text-cream hover:bg-burgundy-dark'
+                  !purchasable ? 'cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark' : 'bg-burgundy text-cream hover:bg-burgundy-dark'
                 )}
               >
-                <ShoppingBag size={16} /> {product.stock === 0 ? t('غير متاح', 'Unavailable') : t('أضف للسلة', 'Add to cart')}
+                <ShoppingBag size={16} /> {!purchasable ? t('غير متاح', 'Unavailable') : t('أضف للسلة', 'Add to cart')}
               </button>
               <button onClick={() => toggle(product.id)} aria-label={t('المفضلة', 'Wishlist')} className="grid size-11 shrink-0 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={17} className={isWishlisted(product.id) ? 'fill-burgundy' : ''} /></button>
             </div>

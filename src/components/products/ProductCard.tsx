@@ -11,6 +11,9 @@ import { useState } from 'react'
 import { Eye } from 'lucide-react'
 import { useQuickView } from '../../context/QuickViewContext'
 import { formatPrice } from '../../lib/formatPrice'
+import { collections } from '../../data/collections'
+import { availabilityLabels, isPurchasable } from '../../data/availability'
+
 
 
 
@@ -18,6 +21,9 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const [justAdded, setJustAdded] = useState(false)
   const { isArabic, t } = useLocalized()
   const { addItem } = useCart()
+  const purchasable = isPurchasable(product.availability)
+  const availabilityInfo = product.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
+  const categoryTags = collections.filter(collection => product.categoryIds.includes(collection.id))
   const { openQuickView } = useQuickView()
   const { isWishlisted, toggle } = useWishlist()
   const wishlisted = isWishlisted(product.id)
@@ -35,10 +41,10 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       </button>
       <button onClick={event => { event.preventDefault(); toggle(product.id) }} aria-label={t('أضف للمفضلة', 'Add to wishlist')} className="absolute left-3 top-3 grid size-8 place-items-center rounded-full bg-cream/90 text-ink shadow-sm backdrop-blur transition hover:scale-105 dark:bg-paper-dark/90 dark:text-ink-dark"><Heart size={15} className={cn(wishlisted ? 'fill-burgundy text-burgundy' : '')} /></button>
       <motion.button
-        disabled={product.stock === 0}
+        disabled={!purchasable}
         onClick={event => {
           event.preventDefault()
-          if (product.stock === 0) return
+          if (!purchasable) return
           addItem(product.id, 1)
           setJustAdded(true)
           setTimeout(() => setJustAdded(false), 1200)
@@ -47,9 +53,8 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         transition={{ duration: .4, ease: 'easeOut' }}
         aria-label={t('أضف للسلة', 'Add to cart')}
         className={cn(
-          product.stock === 0 && 'cursor-not-allowed opacity-40 grayscale',
           'absolute bottom-3 right-3 grid size-9 place-items-center rounded-full shadow-sm transition-colors sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100',
-          justAdded ? 'bg-burgundy text-cream opacity-100' : 'bg-gold text-burgundy-dark opacity-100 hover:scale-105'
+          !purchasable ? 'cursor-not-allowed opacity-40 grayscale' : justAdded ? 'bg-burgundy text-cream opacity-100' : 'bg-gold text-burgundy-dark opacity-100 hover:scale-105'
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -63,14 +68,30 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       <div className="flex items-start justify-between gap-2">
         <Link to={`/products/${product.id}`} className="font-ar-heading text-sm font-semibold text-ink transition hover:text-burgundy dark:text-ink-dark">{name}</Link>
         <span className="shrink-0 text-sm font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</span>
-        {product.stock === 0 ? (
-          <p className="mt-1 text-[11px] font-medium text-muted dark:text-muted-dark">{t('نفد المخزون', 'Out of stock')}</p>
-        ) : product.stock !== undefined && product.stock <= 5 && (
-          <p className="mt-1 text-[11px] font-medium text-burgundy">{t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)}</p>
-        )}
       </div>
       <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted dark:text-muted-dark">{description}</p>
+      {availabilityInfo && (
+        <p className={cn('mt-1 text-[11px] font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
+          {product.availability === 'limited' && product.stock !== undefined
+            ? t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)
+            : isArabic ? availabilityInfo.ar : availabilityInfo.en}
+        </p>
+      )}
       <div className="mt-2 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-2 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
+      {categoryTags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {categoryTags.map(collection => (
+            <Link
+              key={collection.id}
+              to={`/collections/${collection.id}`}
+              onClick={event => event.stopPropagation()}
+              className="rounded-full border border-line px-2 py-0.5 text-[10px] text-muted transition hover:border-burgundy hover:text-burgundy dark:border-line-dark dark:text-muted-dark"
+            >
+              {isArabic ? collection.name : collection.nameEn}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   </motion.article>
 }

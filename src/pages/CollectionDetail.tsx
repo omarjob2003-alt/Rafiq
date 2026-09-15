@@ -27,7 +27,7 @@ export function CollectionDetail() {
   const collection = collections.find(item => item.id === collectionId) ?? collections[0]
   const story = collectionStories[collection.id]
   const Icon = icons[collection.id] ?? LayoutGrid
-  const collectionProducts = products.filter(product => product.categoryId === collection.id)
+  const collectionProducts = products.filter(product => product.categoryIds.includes(collection.id))
   const relatedArticles = articles.slice(0, 3)
   const title = isArabic ? collection.name : collection.nameEn
 

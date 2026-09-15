@@ -24,7 +24,7 @@ const englishDescriptions: Record<string, string> = {
 export function CollectionOverviewCard({ collection, index = 0 }: { collection: Collection; index?: number }) {
   const { isArabic, t } = useLocalized()
   const Icon = icons[collection.id] ?? LayoutGrid
-  const count = products.filter(product => product.categoryId === collection.id).length
+  const count = products.filter(product => product.categoryIds.includes(collection.id)).length
 
   return <MotionLink
     to={collection.href}

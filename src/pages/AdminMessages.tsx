@@ -31,6 +31,7 @@ export function AdminMessages() {
           <h1 className="font-ar-heading text-3xl font-semibold text-ink dark:text-ink-dark">{t('الرسائل والاقتراحات', 'Messages & suggestions')}</h1>
           <div className="mt-2 flex gap-4 text-sm">
             <Link to="/admin/orders" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('الطلبات', 'Orders')}</Link>
+            <Link to="/admin/products" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المنتجات', 'Products')}</Link>
             <Link to="/admin/subscribers" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المشتركين', 'Subscribers')}</Link>
             <span className="font-medium text-burgundy">{t('الرسائل', 'Messages')}{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>
           </div>

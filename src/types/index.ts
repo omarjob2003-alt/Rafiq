@@ -1,3 +1,5 @@
+export type ProductAvailability = 'available' | 'limited' | 'made_to_order' | 'unavailable'
+
 export interface Product {
   id: string;
   name: string;
@@ -6,7 +8,11 @@ export interface Product {
   currency: string;
   image: string;
   category: string;
+  categoryIds: string[];
+  colors: string[];
+  usage: string[];
   stock?: number;
+  availability?: ProductAvailability;
 }
 
 export interface Collection {

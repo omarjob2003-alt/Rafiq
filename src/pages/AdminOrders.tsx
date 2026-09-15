@@ -75,6 +75,7 @@ export function AdminOrders() {
       <div className="mt-2 flex gap-4 text-sm">
         <span className="font-medium text-burgundy">{t('الطلبات', 'Orders')}</span>
         <Link to="/admin/subscribers" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المشتركين', 'Subscribers')}</Link>
+        <Link to="/admin/products" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المنتجات', 'Products')}</Link>
         <Link to="/admin/messages" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('الرسائل', 'Messages')}</Link>
       </div>
       <div className="mt-6 flex items-center gap-2 rounded-lg border border-line bg-cream px-3.5 py-2.5 dark:border-line-dark dark:bg-cream-dark">

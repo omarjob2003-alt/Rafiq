@@ -21,6 +21,7 @@ export function AdminSubscribers() {
           <h1 className="font-ar-heading text-3xl font-semibold text-ink dark:text-ink-dark">{t('مشتركين النشرة الإخبارية', 'Newsletter subscribers')}</h1>
           <div className="mt-2 flex gap-4 text-sm">
             <Link to="/admin/orders" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('الطلبات', 'Orders')}</Link>
+            <Link to="/admin/products" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('المنتجات', 'Products')}</Link>
             <span className="font-medium text-burgundy">{t('المشتركين', 'Subscribers')}</span>
             <Link to="/admin/messages" className="text-muted hover:text-burgundy dark:text-muted-dark">{t('الرسائل', 'Messages')}</Link>
           </div>

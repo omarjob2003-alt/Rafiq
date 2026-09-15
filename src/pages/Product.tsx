@@ -17,6 +17,8 @@ import { ZoomIn } from 'lucide-react'
 import { ImageLightbox } from '../components/ui/ImageLightbox'
 import { useScrolled } from '../hooks/useScrolled'
 import { formatPrice } from '../lib/formatPrice';
+import { collections } from '../data/collections'
+import { availabilityLabels, isPurchasable } from '../data/availability'
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -66,6 +68,9 @@ export function Product() {
   useTrackRecentlyViewed(product.id)
   const rating = getProductRating(product.id)
   const reviews = getProductReviews(product.id)
+  const purchasable = isPurchasable(product.availability)
+  const availabilityInfo = product.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
+  const categoryTags = collections.filter(collection => product.categoryIds.includes(collection.id))
 
 
   const name = isArabic ? product.name : copy.name;
@@ -122,13 +127,21 @@ export function Product() {
               <span>{rating.average}</span>
               <span className="underline underline-offset-2">({rating.count} {t('تقييم', 'reviews')})</span>
             </button>
-            <p className="mt-1 font-en-heading text-lg tracking-wide text-muted dark:text-muted-dark">{isArabic ? product.category : product.categoryId}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {categoryTags.map(collection => (
+                <Link key={collection.id} to={`/collections/${collection.id}`} className="rounded-full border border-line px-3 py-1 text-xs text-ink/80 transition hover:border-burgundy hover:text-burgundy dark:border-line-dark dark:text-ink-dark/80">
+                  {isArabic ? collection.name : collection.nameEn}
+                </Link>
+              ))}
+            </div>
             <p className="mt-6 max-w-md text-sm leading-8 text-muted dark:text-muted-dark">{description}</p>
             <p className="mt-5 text-2xl font-semibold text-burgundy">{formatPrice(product.price)} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
-            {product.stock === 0 ? (
-              <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{t('نفد المخزون حاليًا', 'Currently out of stock')}</p>
-            ) : product.stock !== undefined && product.stock <= 5 && (
-              <p className="mt-2 text-sm font-medium text-burgundy">{t(`باقي ${product.stock} قطع بس في المخزون`, `Only ${product.stock} left in stock`)}</p>
+            {availabilityInfo && (
+              <p className={cn('mt-2 text-sm font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
+                {product.availability === 'limited' && product.stock !== undefined
+                  ? t(`باقي ${product.stock} قطع بس في المخزون`, `Only ${product.stock} left in stock`)
+                  : isArabic ? availabilityInfo.ar : availabilityInfo.en}
+              </p>
             )}
 
             <div className="mt-7 space-y-6 border-y border-line py-6 dark:border-line-dark">
@@ -160,14 +173,14 @@ export function Product() {
 
             <div className="mt-6 flex gap-3">
               <button
-                disabled={product.stock === 0}
+                disabled={!purchasable}
                 onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
                 className={cn(
                   "flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-4 text-sm font-medium transition",
-                  product.stock === 0 ? "cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark" : "bg-burgundy text-cream hover:bg-burgundy-dark"
+                  !purchasable ? "cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark" : "bg-burgundy text-cream hover:bg-burgundy-dark"
                 )}
               >
-                {product.stock === 0 ? t("غير متاح حاليًا", "Currently unavailable") : added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{t("أضف إلى السلة", "Add to cart")}</>}
+                {!purchasable ? t("غير متاح حاليًا", "Currently unavailable") : added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{t("أضف إلى السلة", "Add to cart")}</>}
               </button>
               <button onClick={() => setWishlisted((value) => !value)} aria-label={t("إضافة للمفضلة", "Add to wishlist")} className="grid w-14 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={19} className={wishlisted ? "fill-burgundy" : ""} /></button>
             </div>
@@ -234,7 +247,7 @@ export function Product() {
       </div>
 
       <MobileStickyBuyBar
-        show={showStickyBar && product.stock !== 0}
+        show={showStickyBar && purchasable}
         name={name}
         price={product.price}
         currency={isArabic ? product.currency : 'EGP'}
