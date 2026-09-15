@@ -53,15 +53,3 @@ export interface InspirationImage {
   size: "tall" | "wide" | "square";
 }
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  image: string;
-  category: string;
-  categoryId: string;
-  colors: string[];
-  usage: string[];
-}
