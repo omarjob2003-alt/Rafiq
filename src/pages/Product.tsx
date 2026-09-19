@@ -18,7 +18,8 @@ import { ImageLightbox } from '../components/ui/ImageLightbox'
 import { useScrolled } from '../hooks/useScrolled'
 import { formatPrice } from '../lib/formatPrice';
 import { collections } from '../data/collections'
-import { availabilityLabels, isPurchasable } from '../data/availability'
+import { availabilityLabels, isPurchasable, isMadeToOrder } from '../data/availability'
+import { RestockNotifyForm } from '../components/products/RestockNotifyForm'
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -71,6 +72,9 @@ export function Product() {
   const purchasable = isPurchasable(product.availability)
   const availabilityInfo = product.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
   const categoryTags = collections.filter(collection => product.categoryIds.includes(collection.id))
+
+  const madeToOrder = isMadeToOrder(product.availability)
+  const maxQuantity = product.availability === 'limited' && product.stock !== undefined ? product.stock : 99
 
 
   const name = isArabic ? product.name : copy.name;
@@ -143,6 +147,9 @@ export function Product() {
                   : isArabic ? availabilityInfo.ar : availabilityInfo.en}
               </p>
             )}
+            {madeToOrder && availabilityInfo?.leadTimeAr && (
+              <p className="mt-1.5 text-xs text-muted dark:text-muted-dark">{isArabic ? availabilityInfo.leadTimeAr : availabilityInfo.leadTimeEn}</p>
+            )}
 
             <div className="mt-7 space-y-6 border-y border-line py-6 dark:border-line-dark">
               <div>
@@ -166,24 +173,29 @@ export function Product() {
                 <div className="flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark">
                   <button onClick={() => setQuantity((v) => Math.max(1, v - 1))} aria-label={t("تقليل الكمية", "Decrease quantity")} className="p-2.5 text-muted hover:text-burgundy dark:text-muted-dark"><Minus size={15} /></button>
                   <span className="w-8 text-center text-sm text-ink dark:text-ink-dark">{quantity}</span>
-                  <button onClick={() => setQuantity((v) => v + 1)} aria-label={t("زيادة الكمية", "Increase quantity")} className="p-2.5 text-muted hover:text-burgundy dark:text-muted-dark"><Plus size={15} /></button>
+                  <button disabled={quantity >= maxQuantity} onClick={() => setQuantity((v) => Math.min(maxQuantity, v + 1))} aria-label={t("زيادة الكمية", "Increase quantity")} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-40 dark:text-muted-dark"><Plus size={15} /></button>
                 </div>
               </div>
             </div>
+            {purchasable ? (
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-burgundy px-5 py-4 text-sm font-medium text-cream transition hover:bg-burgundy-dark"
+                >
+                  {added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{madeToOrder ? t("اطلبه دلوقتي", "Pre-order now") : t("أضف إلى السلة", "Add to cart")}</>}
+                </button>
+                <button onClick={() => setWishlisted((value) => !value)} aria-label={t("إضافة للمفضلة", "Add to wishlist")} className="grid w-14 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={19} className={wishlisted ? "fill-burgundy" : ""} /></button>
+              </div>
+            ) : (
+              <RestockNotifyForm productId={product.id} />
+            )}
 
-            <div className="mt-6 flex gap-3">
-              <button
-                disabled={!purchasable}
-                onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-4 text-sm font-medium transition",
-                  !purchasable ? "cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark" : "bg-burgundy text-cream hover:bg-burgundy-dark"
-                )}
-              >
-                {!purchasable ? t("غير متاح حاليًا", "Currently unavailable") : added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{t("أضف إلى السلة", "Add to cart")}</>}
-              </button>
-              <button onClick={() => setWishlisted((value) => !value)} aria-label={t("إضافة للمفضلة", "Add to wishlist")} className="grid w-14 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={19} className={wishlisted ? "fill-burgundy" : ""} /></button>
-            </div>
+            {madeToOrder && (
+              <p className="mt-3 text-xs leading-6 text-muted dark:text-muted-dark">
+                {t('المنتج ده بيتصنّع خصيصًا لك بعد الطلب - وعشان نشكرك على صبرك، الشحن هيبقى مجاني تلقائيًا.', 'This piece is made just for you after ordering - and to thank you for waiting, shipping is automatically free.')}
+              </p>
+            )}
 
             <div className="mt-7 grid grid-cols-3 gap-3 text-center text-[11px] leading-5 text-muted dark:text-muted-dark">
               <div className="flex flex-col items-center gap-1"><Truck size={20} className="text-ink dark:text-ink-dark" />{t("شحن سريع", "Fast shipping")}<br />{t("خلال 2–4 أيام", "Within 2–4 days")}</div>

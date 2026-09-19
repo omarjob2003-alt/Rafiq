@@ -7,6 +7,7 @@ import { products, productsEn } from '../data/products'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { calculateDiscount } from '../data/coupons'
 import { formatPrice } from '../lib/formatPrice'
+import { hasMadeToOrderItem } from '../data/availability'
 
 export function Cart() {
   const { items, updateQuantity, removeItem, couponCode, applyCoupon, removeCoupon } = useCart()
@@ -23,7 +24,9 @@ export function Cart() {
   const [city, setCity] = useState('cairo')
 
   const discountAmount = calculateDiscount(subtotal, couponCode)
-  const estimatedShipping = city === 'cairo' ? (subtotal - discountAmount >= 1000 ? 0 : 60) : 90
+  const madeToOrderItems = lines.filter(line => line.product.availability === 'made_to_order')
+  const hasMadeToOrder = hasMadeToOrderItem(lines.map(line => line.product))
+  const estimatedShipping = hasMadeToOrder ? 0 : city === 'cairo' ? (subtotal - discountAmount >= 1000 ? 0 : 60) : 90
   const estimatedTotal = subtotal - discountAmount + estimatedShipping
   const freeShippingThreshold = 1000
   const remaining = Math.max(0, freeShippingThreshold - subtotal)
@@ -88,6 +91,11 @@ export function Cart() {
             ? <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t(`أضف منتجات بـ ${formatPrice(remaining)} جنيه كمان للحصول على شحن مجاني.`, `Add ${formatPrice(remaining)} EGP more for free shipping.`)}</p>
             : <p className="mt-4 rounded-lg bg-burgundy/[.05] px-3 py-2.5 text-xs text-burgundy dark:bg-burgundy/15">{t('مبروك، طلبك هيوصلك شحن مجاني.', 'You\u2019ve unlocked free shipping.')}</p>}
 
+          {hasMadeToOrder && (
+            <p className="mt-4 rounded-lg bg-gold/10 px-3 py-2.5 text-xs leading-6 text-ink/80 dark:bg-gold/15 dark:text-ink-dark/80">
+              {t(`سلتك فيها منتج بيتصنّع خصيصًا لك (${madeToOrderItems.map(l => l.product.name).join('، ')})، فالتوصيل هياخد وقت أطول شوية (١٠-١٤ يوم) - والشحن مجاني كهدية منّا ليك.`, `Your cart includes a made-to-order item (${madeToOrderItems.map(l => l.product.name).join(', ')}), so delivery takes a bit longer (10–14 days) - and shipping is free as our thanks.`)}
+            </p>
+          )}
           <div className="mt-5 space-y-2">
             <p className="text-sm font-medium text-ink dark:text-ink-dark">{t('عندك كوبون؟', 'Have a coupon?')}</p>
             <div className="flex gap-2">

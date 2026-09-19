@@ -71,11 +71,16 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       </div>
       <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted dark:text-muted-dark">{description}</p>
       {availabilityInfo && (
-        <p className={cn('mt-1 text-[11px] font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
-          {product.availability === 'limited' && product.stock !== undefined
-            ? t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)
-            : isArabic ? availabilityInfo.ar : availabilityInfo.en}
-        </p>
+        <div className={cn('mt-1 flex items-center gap-1.5 text-[11px] font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
+          <span>
+            {product.availability === 'limited' && product.stock !== undefined
+              ? t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)
+              : isArabic ? availabilityInfo.ar : availabilityInfo.en}
+          </span>
+          {product.availability === 'unavailable' && (
+            <Link to={`/products/${product.id}`} onClick={event => event.stopPropagation()} className="underline underline-offset-2 hover:text-burgundy">{t('نبهني', 'Notify me')}</Link>
+          )}
+        </div>
       )}
       <div className="mt-2 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-2 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
       {categoryTags.length > 0 && (

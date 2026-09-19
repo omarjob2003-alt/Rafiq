@@ -14,7 +14,7 @@ export function AdminLogin() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (login(email, password)) navigate('/admin/orders', { replace: true })
+    if (login(email, password)) navigate('/admin', { replace: true })
     else setError(t('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'Incorrect email or password.'))
   }
 

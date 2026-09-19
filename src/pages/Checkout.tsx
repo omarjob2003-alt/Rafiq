@@ -14,7 +14,7 @@ import { useAddressBook } from '../context/AddressBookContext'
 import { governorates } from '../data/egyptLocations'
 import { markOrderSeen } from '../lib/orderSeenTracker'
 import { formatPrice } from '../lib/formatPrice'
-
+import { hasMadeToOrderItem } from '../data/availability'
 
 export function Checkout() {
   const { addOrder } = useOrders()
@@ -46,7 +46,9 @@ export function Checkout() {
 
   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
   const discountAmount = calculateDiscount(subtotal, couponCode)
-  const shippingCost = shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
+  const madeToOrderItems = lines.filter(line => line.product.availability === 'made_to_order')
+  const hasMadeToOrder = hasMadeToOrderItem(lines.map(line => line.product))
+  const shippingCost = hasMadeToOrder ? 0 : shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
   const total = subtotal - discountAmount + shippingCost
 
   if (!placed && lines.length === 0) return <Navigate to="/cart" replace />
@@ -183,11 +185,17 @@ export function Checkout() {
           )}
         </section>
 
+
         <section>
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٣. طريقة الشحن', '3. Shipping method')}</h2>
+          {hasMadeToOrder && (
+            <p className="mt-3 rounded-lg bg-gold/10 px-3 py-2.5 text-xs leading-6 text-ink/80 dark:bg-gold/15 dark:text-ink-dark/80">
+              {t(`طلبك فيه منتج بيتصنّع خصيصًا لك (${madeToOrderItems.map(l => l.product.name).join('، ')})، فالشحن السريع مش متاح - التوصيل هيبقى خلال ١٠-١٤ يوم، والشحن مجاني.`, `Your order includes a made-to-order item (${madeToOrderItems.map(l => l.product.name).join(', ')}), so express shipping isn't available - delivery will take 10–14 days, and shipping is free.`)}
+            </p>
+          )}
           <div className="mt-4 space-y-3">
-            <OptionRow icon={Truck} active={shipping === 'standard'} onClick={() => setShipping('standard')} title={t('شحن عادي', 'Standard shipping')} subtitle={t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={formatPrice(subtotal >= 1000 ? 0 : 60)} />
-            <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={formatPrice(90)} />
+            <OptionRow icon={Truck} active={shipping === 'standard' || hasMadeToOrder} onClick={() => setShipping('standard')} title={hasMadeToOrder ? t('شحن بعد التصنيع', 'Shipping after production') : t('شحن عادي', 'Standard shipping')} subtitle={hasMadeToOrder ? t('خلال ١٠ إلى ١٤ يوم عمل', 'Within 10–14 business days') : t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={hasMadeToOrder || subtotal >= 1000 ? t('مجاني', 'Free') : `60 ${t('جنيه', 'EGP')}`} />
+            {!hasMadeToOrder && <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={`90 ${t('جنيه', 'EGP')}`} />}
           </div>
         </section>
 
