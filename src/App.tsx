@@ -35,6 +35,9 @@ import { AdminSubscribers } from './pages/AdminSubscribers'
 import { AdminMessages } from './pages/AdminMessages'
 import { AdminProducts } from './pages/AdminProducts'
 import { AdminOverview } from './pages/AdminOverview'
+import { AdminExpenses } from './pages/AdminExpenses'
+import { AdminCategories } from './pages/AdminCategories'
+import { AdminProductEditor } from './pages/AdminProductEditor'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -81,7 +84,11 @@ function Storefront() {
         <Route path="/admin/subscribers" element={<RequireAdmin><AdminSubscribers /></RequireAdmin>} />
         <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
         <Route path="/admin/products" element={<RequireAdmin><AdminProducts /></RequireAdmin>} />
-      
+        <Route path="/admin/expenses" element={<RequireAdmin><AdminExpenses /></RequireAdmin>} />
+        <Route path="/admin/categories" element={<RequireAdmin><AdminCategories /></RequireAdmin>} />
+        <Route path="/admin/products/new" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
+        <Route path="/admin/products/:productId/edit" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
+
 
 
         <Route path="*" element={<NotFound />} />

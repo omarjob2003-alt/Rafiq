@@ -1,4 +1,5 @@
 import type { Collection } from "../types";
+import { applyCollectionOverrides } from '../lib/collectionOverrides'
 
 export const collections: Collection[] = [
   {
@@ -38,3 +39,5 @@ export const collections: Collection[] = [
     href: "/collections/essentials",
   },
 ];
+
+applyCollectionOverrides(collections)

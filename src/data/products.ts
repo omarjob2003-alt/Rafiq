@@ -1,5 +1,5 @@
 import type { Product } from "../types";
-import { applyProductOverrides } from '../lib/productOverrides'
+import { applyProductOverrides, getEnglishEdit } from '../lib/productOverrides'
 export const products: Product[] = [
 {
     id: "desk-mat",
@@ -174,3 +174,13 @@ export const productsEn: Record<string, { name: string; description: string }> =
   "desk-organizer": { name: "Desk organizer", description: "A leather caddy that keeps pens and notebooks upright." },
 };
 applyProductOverrides(products)
+
+products.forEach(product => {
+  const edit = getEnglishEdit(product.id)
+  if (edit.nameEn || edit.descriptionEn) {
+    productsEn[product.id] = {
+      name: edit.nameEn ?? productsEn[product.id]?.name ?? product.name,
+      description: edit.descriptionEn ?? productsEn[product.id]?.description ?? product.description,
+    }
+  }
+})

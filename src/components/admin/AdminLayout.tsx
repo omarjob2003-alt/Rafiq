@@ -4,6 +4,8 @@ import { LayoutDashboard, LogOut, Mail, Package, ShoppingBag, Users } from 'luci
 import { useAdmin } from '../../context/AdminContext'
 import { useLocalized } from '../../hooks/useLocalized'
 import { cn } from '../../lib/cn'
+import { Receipt } from 'lucide-react'
+import { FolderTree } from 'lucide-react'
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const { admin, logout } = useAdmin()
@@ -14,6 +16,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin', icon: LayoutDashboard, label: t('نظرة عامة', 'Overview') },
     { href: '/admin/orders', icon: ShoppingBag, label: t('الطلبات', 'Orders') },
     { href: '/admin/products', icon: Package, label: t('المنتجات', 'Products') },
+    { href: '/admin/categories', icon: FolderTree, label: t('الفئات', 'Categories') },
+    { href: '/admin/expenses', icon: Receipt, label: t('المصروفات', 'Expenses') },
     { href: '/admin/subscribers', icon: Users, label: t('المشتركين', 'Subscribers') },
     { href: '/admin/messages', icon: Mail, label: t('الرسائل', 'Messages') },
   ]
