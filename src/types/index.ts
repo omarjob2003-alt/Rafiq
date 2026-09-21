@@ -1,4 +1,6 @@
-export type ProductAvailability = 'available' | 'limited' | 'made_to_order' | 'unavailable'
+export type StockMode = 'stock' | 'made_to_order' | 'discontinued'
+export type EffectiveAvailability = 'available' | 'limited' | 'made_to_order' | 'unavailable'
+export type ProductAvailability = EffectiveAvailability
 
 export interface Product {
   id: string;
@@ -11,10 +13,12 @@ export interface Product {
   categoryIds: string[];
   colors: string[];
   usage: string[];
-  stock?: number;
+  stock: number;
+  lowStockThreshold?: number;
+  stockMode: StockMode;
+  /** Legacy persisted value; new availability is calculated from stockMode and stock. */
   availability?: ProductAvailability;
 }
-
 export interface Collection {
   id: string;
   name: string;

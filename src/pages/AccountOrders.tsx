@@ -10,6 +10,10 @@ import { useAuth } from '../context/AuthContext'
 import { useState, useEffect } from 'react'
 import { useOrderStatusUpdates } from '../hooks/useOrderStatusUpdates'
 import { formatPrice } from '../lib/formatPrice'
+import { RotateCcw } from 'lucide-react'
+import { ReturnRequestModal } from '../components/account/ReturnRequestModal'
+import { getUserReturnRequests, hasReturnRequest } from '../lib/returns'
+import { returnStatusLabels } from '../data/returnStatuses'
 
 export function AccountOrders() {
     const { orders: allOrders } = useOrders()
@@ -17,6 +21,9 @@ export function AccountOrders() {
     const orders = allOrders.filter(order => order.userEmail === user?.email)
     const { updatedOrderIds, markAllSeen } = useOrderStatusUpdates(orders)
     const [highlightedIds] = useState(updatedOrderIds)
+    const [returnOrder, setReturnOrder] = useState<typeof orders[number] | null>(null)
+    const [, forceRerender] = useState(0)
+    const myReturnRequests = user ? getUserReturnRequests(user.email) : []
 
     useEffect(() => { markAllSeen() }, [])
     const { t, isArabic } = useLocalized()
@@ -50,9 +57,28 @@ export function AccountOrders() {
                         <div className="mt-3 flex items-center justify-between">
                             <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
                             <Link to={`/track-order?order=${order.id}`} className="text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">{t('تتبع الطلب', 'Track order')}</Link>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {order.lines.map(line => {
+                                    const requested = hasReturnRequest(order.id, line.productId)
+                                    const request = myReturnRequests.find(r => r.orderId === order.id && r.productId === line.productId)
+                                    if (requested && request) {
+                                        const info = returnStatusLabels[request.status]
+                                        return <span key={line.productId} className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${info.tone === 'burgundy' ? 'bg-burgundy/10 text-burgundy' : info.tone === 'gold' ? 'bg-gold/20 text-burgundy' : 'bg-line text-muted dark:bg-line-dark dark:text-muted-dark'}`}>
+                                            {t(request.type === 'exchange' ? 'استبدال' : 'إرجاع', request.type === 'exchange' ? 'Exchange' : 'Return')}: {isArabic ? info.ar : info.en}
+                                        </span>
+                                    }
+                                    return null
+                                })}
+                            </div>
+                            {orderStatuses.find(s => s.id === order.status)?.id === 'delivered' && (
+                                <button onClick={() => setReturnOrder(order)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">
+                                    <RotateCcw size={13} /> {t('طلب استبدال أو إرجاع', 'Request return/exchange')}
+                                </button>
+                            )}
                         </div>
                     </div>)}
                 </div>}
         </div>
+        <ReturnRequestModal order={returnOrder} onClose={() => setReturnOrder(null)} onSubmitted={() => forceRerender(v => v + 1)} />
     </AccountLayout>
 }

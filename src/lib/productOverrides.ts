@@ -1,9 +1,5 @@
-import type { Product, ProductAvailability } from '../types'
-
-export interface ProductOverride {
-  availability?: ProductAvailability
-  stock?: number
-}
+import type { Product, ProductAvailability, StockMode } from '../types'
+import { logStockChange, type StockChangeReason } from './stockLog'
 
 export interface ProductEdit {
   name?: string
@@ -15,18 +11,16 @@ export interface ProductEdit {
   categoryIds?: string[]
   colors?: string[]
   usage?: string[]
-  availability?: ProductAvailability
   stock?: number
+  lowStockThreshold?: number
+  stockMode?: StockMode
+  availability?: ProductAvailability
 }
 
-const OVERRIDES_KEY = 'rafiq-product-overrides'
 const EDITS_KEY = 'rafiq-product-edits'
 const CUSTOM_KEY = 'rafiq-custom-products'
 const DELETED_KEY = 'rafiq-deleted-products'
 
-function getOverrides(): Record<string, ProductOverride> {
-  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY) ?? '{}') } catch { return {} }
-}
 function getEdits(): Record<string, ProductEdit> {
   try { return JSON.parse(localStorage.getItem(EDITS_KEY) ?? '{}') } catch { return {} }
 }
@@ -35,18 +29,6 @@ function getCustom(): Product[] {
 }
 function getDeleted(): string[] {
   try { return JSON.parse(localStorage.getItem(DELETED_KEY) ?? '[]') } catch { return [] }
-}
-
-// حافظنا عليها زي ما هي عشان صفحة "حالة المنتج" القديمة تفضل شغالة من غير تغيير
-export function setProductOverride(productId: string, override: ProductOverride, products: Product[]) {
-  const overrides = getOverrides()
-  overrides[productId] = override
-  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides))
-  const product = products.find(p => p.id === productId)
-  if (product) {
-    product.availability = override.availability
-    product.stock = override.stock
-  }
 }
 
 export function isCustomProduct(id: string): boolean {
@@ -67,7 +49,7 @@ export function addCustomProduct(product: Product, nameEn: string, descriptionEn
 
 export function updateProduct(id: string, edit: ProductEdit, products: Product[]) {
   if (isCustomProduct(id)) {
-    const custom = getCustom().map(p => p.id === id ? { ...p, ...edit, name: edit.name ?? p.name, description: edit.description ?? p.description } : p)
+    const custom = getCustom().map(p => p.id === id ? { ...p, ...edit } : p)
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom))
   }
   const edits = getEdits()
@@ -76,6 +58,11 @@ export function updateProduct(id: string, edit: ProductEdit, products: Product[]
 
   const target = products.find(p => p.id === id)
   if (target) Object.assign(target, edit)
+}
+
+export function setProductOverride(id: string, edit: ProductEdit, products: Product[]) {
+  const stockMode = edit.availability === 'made_to_order' ? 'made_to_order' : edit.availability === 'unavailable' ? 'discontinued' : edit.availability ? 'stock' : edit.stockMode
+  updateProduct(id, { ...edit, stockMode }, products)
 }
 
 export function deleteProduct(id: string, products: Product[]) {
@@ -94,8 +81,16 @@ export function getEnglishEdit(id: string): { nameEn?: string; descriptionEn?: s
   return getEdits()[id] ?? {}
 }
 
+// Ø£Ù‡Ù… ÙØ§Ù†ÙƒØ´Ù† Ø¬Ø¯ÙŠØ¯Ø© - Ø£ÙŠ ØªØºÙŠÙŠØ± ÙÙŠ Ø±Ù‚Ù… Ø§Ù„Ù…Ø®Ø²ÙˆÙ† Ù„Ø§Ø²Ù… ÙŠØ¹Ø¯ÙŠ Ù…Ù† Ù‡Ù†Ø§ Ø¹Ø´Ø§Ù† ÙŠØªØ³Ø¬Ù„ ÙÙŠ Ø§Ù„Ù„ÙˆØ¬
+export function adjustStock(productId: string, delta: number, reason: StockChangeReason, products: Product[], note?: string) {
+  const product = products.find(p => p.id === productId)
+  if (!product || product.stockMode !== 'stock') return
+  const nextStock = Math.max(0, product.stock + delta)
+  updateProduct(productId, { stock: nextStock }, products)
+  logStockChange(productId, delta, reason, nextStock, note)
+}
+
 export function applyProductOverrides(products: Product[]) {
-  const overrides = getOverrides()
   const edits = getEdits()
   const deleted = new Set(getDeleted())
 
@@ -104,11 +99,6 @@ export function applyProductOverrides(products: Product[]) {
     if (deleted.has(product.id)) {
       products.splice(i, 1)
       continue
-    }
-    const override = overrides[product.id]
-    if (override) {
-      product.availability = override.availability
-      product.stock = override.stock
     }
     const edit = edits[product.id]
     if (edit) Object.assign(product, edit)

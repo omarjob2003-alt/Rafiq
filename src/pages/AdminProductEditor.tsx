@@ -5,7 +5,7 @@ import { useLocalized } from '../hooks/useLocalized'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { products, productsEn } from '../data/products'
 import { collections } from '../data/collections'
-import { availabilityLabels } from '../data/availability'
+import { availabilityLabels, getEffectiveAvailability } from '../data/availability'
 import { usageTags, colorOptions } from '../data/filters'
 import { addCustomProduct, updateProduct, getEnglishEdit } from '../lib/productOverrides'
 import { slugify } from '../lib/slugify'
@@ -39,7 +39,7 @@ export function AdminProductEditor() {
       categoryIds: editingProduct.categoryIds,
       colors: editingProduct.colors,
       usage: editingProduct.usage,
-      availability: editingProduct.availability ?? 'available',
+      availability: getEffectiveAvailability(editingProduct),
       stock: editingProduct.stock !== undefined ? String(editingProduct.stock) : '',
     }
   })
@@ -61,7 +61,8 @@ export function AdminProductEditor() {
       colors: form.colors,
       usage: form.usage,
       availability: form.availability,
-      stock: form.availability === 'limited' && form.stock !== '' ? Number(form.stock) : undefined,
+      stock: form.stock !== '' ? Number(form.stock) : 0,
+      stockMode: (form.availability === 'made_to_order' ? 'made_to_order' : form.availability === 'unavailable' ? 'discontinued' : 'stock') as Product['stockMode'],
     }
 
     if (editingProduct) {
@@ -156,7 +157,7 @@ export function AdminProductEditor() {
         </label>
         <label className="block text-sm">
           <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الكمية (لو كمية محدودة)', 'Stock (if limited)')}</span>
-          <input type="number" min={0} value={form.stock} onChange={e => setForm(prev => ({ ...prev, stock: e.target.value }))} disabled={form.availability !== 'limited'} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+          <input type="number" min={0} value={form.stock} onChange={e => setForm(prev => ({ ...prev, stock: e.target.value }))} disabled={form.availability === 'made_to_order' || form.availability === 'unavailable'} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
         </label>
       </div>
 

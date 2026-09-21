@@ -14,7 +14,9 @@ import { useAddressBook } from '../context/AddressBookContext'
 import { governorates } from '../data/egyptLocations'
 import { markOrderSeen } from '../lib/orderSeenTracker'
 import { formatPrice } from '../lib/formatPrice'
-import { hasMadeToOrderItem } from '../data/availability'
+import { getMaxOrderQuantity, hasMadeToOrderItem, isPurchasable } from '../data/availability'
+import { adjustStock } from '../lib/productOverrides'
+
 
 export function Checkout() {
   const { addOrder } = useOrders()
@@ -46,7 +48,7 @@ export function Checkout() {
 
   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
   const discountAmount = calculateDiscount(subtotal, couponCode)
-  const madeToOrderItems = lines.filter(line => line.product.availability === 'made_to_order')
+  const madeToOrderItems = lines.filter(line => line.product.stockMode === 'made_to_order')
   const hasMadeToOrder = hasMadeToOrderItem(lines.map(line => line.product))
   const shippingCost = hasMadeToOrder ? 0 : shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
   const total = subtotal - discountAmount + shippingCost
@@ -55,6 +57,12 @@ export function Checkout() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
+
+    const unavailableLine = lines.find(line => !isPurchasable(line.product) || line.quantity > getMaxOrderQuantity(line.product))
+    if (unavailableLine) {
+      window.alert(t('الكمية المطلوبة لم تعد متاحة. راجع السلة ثم حاول مرة أخرى.', 'The requested quantity is no longer available. Please review your cart and try again.'))
+      return
+    }
 
     let addressText = ''
     if (useNewAddress) {
@@ -71,6 +79,10 @@ export function Checkout() {
       }
     }
 
+    lines.forEach(line => {
+      adjustStock(line.product.id, -line.quantity, 'sale', products, `${t('طلب', 'Order')} ${orderNumber || ''}`)
+    })
+
     const id = addOrder({
       lines: lines.map(line => ({ productId: line.productId, quantity: line.quantity, price: line.product.price })),
       total,
@@ -82,6 +94,7 @@ export function Checkout() {
       addressText,
     })
     markOrderSeen(id, 'received')
+    lines.forEach(line => adjustStock(line.productId, -line.quantity, 'sale', products, 'Order ' + id))
 
     if (useNewAddress && saveNewAddress) {
       addAddress({

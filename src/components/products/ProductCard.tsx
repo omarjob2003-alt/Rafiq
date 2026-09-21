@@ -1,5 +1,6 @@
-﻿import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Plus, Check } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Heart, Plus, Check, Eye } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useLocalized } from '../../hooks/useLocalized'
 import { cn } from '../../lib/cn'
@@ -7,22 +8,18 @@ import { productsEn } from '../../data/products'
 import type { Product } from '../../types'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
-import { useState } from 'react'
-import { Eye } from 'lucide-react'
 import { useQuickView } from '../../context/QuickViewContext'
 import { formatPrice } from '../../lib/formatPrice'
 import { collections } from '../../data/collections'
-import { availabilityLabels, isPurchasable } from '../../data/availability'
-
-
-
+import { availabilityLabels, getEffectiveAvailability, isPurchasable } from '../../data/availability'
 
 export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const [justAdded, setJustAdded] = useState(false)
   const { isArabic, t } = useLocalized()
   const { addItem } = useCart()
-  const purchasable = isPurchasable(product.availability)
-  const availabilityInfo = product.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
+  const purchasable = isPurchasable(product)
+  const effectiveAvailability = getEffectiveAvailability(product)
+  const availabilityInfo = effectiveAvailability !== 'available' ? availabilityLabels[effectiveAvailability] : null
   const categoryTags = collections.filter(collection => product.categoryIds.includes(collection.id))
   const { openQuickView } = useQuickView()
   const { isWishlisted, toggle } = useWishlist()
@@ -30,6 +27,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const copy = productsEn[product.id]
   const name = isArabic ? product.name : copy.name
   const description = isArabic ? product.description : copy.description
+
   return <motion.article initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: .55, delay: index * .06 }} className="group">
     <Link to={`/products/${product.id}`} className="relative block aspect-[.96] overflow-hidden rounded-[14px] bg-paper dark:bg-paper-dark" aria-label={t(`عرض ${product.name}`, `View ${copy.name}`)}>
       <img src={product.image} alt={name} loading="lazy" className="size-full object-cover transition duration-700 ease-out group-hover:scale-[1.055]" />
@@ -70,19 +68,22 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         <span className="shrink-0 text-sm font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</span>
       </div>
       <p className="mt-1 line-clamp-1 text-xs leading-5 text-muted dark:text-muted-dark">{description}</p>
+
       {availabilityInfo && (
         <div className={cn('mt-1 flex items-center gap-1.5 text-[11px] font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
           <span>
-            {product.availability === 'limited' && product.stock !== undefined
+            {effectiveAvailability === 'limited'
               ? t(`باقي ${product.stock} بس`, `Only ${product.stock} left`)
               : isArabic ? availabilityInfo.ar : availabilityInfo.en}
           </span>
-          {product.availability === 'unavailable' && (
+          {effectiveAvailability === 'unavailable' && (
             <Link to={`/products/${product.id}`} onClick={event => event.stopPropagation()} className="underline underline-offset-2 hover:text-burgundy">{t('نبهني', 'Notify me')}</Link>
           )}
         </div>
       )}
+
       <div className="mt-2 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-2 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
+
       {categoryTags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {categoryTags.map(collection => (

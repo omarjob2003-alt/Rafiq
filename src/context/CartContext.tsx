@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { coupons } from '../data/coupons'
+import { products } from '../data/products'
+import { getMaxOrderQuantity, isPurchasable } from '../data/availability'
 
 export interface CartLine {
   productId: string
@@ -71,7 +73,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) { removeItem(productId); return }
-    setItems(prev => prev.map(item => item.productId === productId ? { ...item, quantity } : item))
+    const product = products.find(item => item.id === productId)
+    if (!product || !isPurchasable(product)) return
+    const nextQuantity = Math.min(quantity, getMaxOrderQuantity(product))
+    setItems(prev => prev.map(item => item.productId === productId ? { ...item, quantity: nextQuantity } : item))
   }
 
   const clearCart = () => { setItems([]); removeCoupon() }

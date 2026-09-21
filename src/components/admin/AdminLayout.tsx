@@ -6,6 +6,11 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { cn } from '../../lib/cn'
 import { Receipt } from 'lucide-react'
 import { FolderTree } from 'lucide-react'
+import { Star } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
+import { MessageCircleQuestion } from 'lucide-react'
+import { History } from 'lucide-react'
+
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const { admin, logout } = useAdmin()
@@ -18,6 +23,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin/products', icon: Package, label: t('المنتجات', 'Products') },
     { href: '/admin/categories', icon: FolderTree, label: t('الفئات', 'Categories') },
     { href: '/admin/expenses', icon: Receipt, label: t('المصروفات', 'Expenses') },
+    { href: '/admin/stock-log', icon: History, label: t('سجل المخزون', 'Stock log') },
+    { href: '/admin/reviews', icon: Star, label: t('التقييمات', 'Reviews') },
+    { href: '/admin/returns', icon: RotateCcw, label: t('الاستبدال والإرجاع', 'Returns') },
+    { href: '/admin/questions', icon: MessageCircleQuestion, label: t('الأسئلة', 'Questions') },
     { href: '/admin/subscribers', icon: Users, label: t('المشتركين', 'Subscribers') },
     { href: '/admin/messages', icon: Mail, label: t('الرسائل', 'Messages') },
   ]

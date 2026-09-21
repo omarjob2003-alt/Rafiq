@@ -38,6 +38,10 @@ import { AdminOverview } from './pages/AdminOverview'
 import { AdminExpenses } from './pages/AdminExpenses'
 import { AdminCategories } from './pages/AdminCategories'
 import { AdminProductEditor } from './pages/AdminProductEditor'
+import { AdminReviews } from './pages/AdminReviews'
+import { AdminReturns } from './pages/AdminReturns'
+import { AdminQuestions } from './pages/AdminQuestions'
+import { AdminStockLog } from './pages/AdminStockLog'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -88,6 +92,10 @@ function Storefront() {
         <Route path="/admin/categories" element={<RequireAdmin><AdminCategories /></RequireAdmin>} />
         <Route path="/admin/products/new" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
         <Route path="/admin/products/:productId/edit" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
+        <Route path="/admin/reviews" element={<RequireAdmin><AdminReviews /></RequireAdmin>} />
+        <Route path="/admin/returns" element={<RequireAdmin><AdminReturns /></RequireAdmin>} />
+        <Route path="/admin/questions" element={<RequireAdmin><AdminQuestions /></RequireAdmin>} />
+        <Route path="/admin/stock-log" element={<RequireAdmin><AdminStockLog /></RequireAdmin>} />
 
 
 

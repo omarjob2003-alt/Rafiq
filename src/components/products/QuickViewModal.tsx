@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Heart, Minus, Plus, ShoppingBag, X } from 'lucide-react'
@@ -7,17 +7,11 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { products, productsEn } from '../../data/products'
-import { formatPrice } from '../../lib/formatPrice'
+import { availabilityLabels, getEffectiveAvailability, isPurchasable, getMaxOrderQuantity } from '../../data/availability'
 import { cn } from '../../lib/cn'
-import { availabilityLabels, isPurchasable } from '../../data/availability'
-
-import { useFocusTrap } from '../../hooks/useFocusTrap'
-
 
 export function QuickViewModal() {
   const { openProductId, closeQuickView } = useQuickView()
-  const trapRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(trapRef, Boolean(openProductId))
   const { isArabic, t } = useLocalized()
   const { addItem } = useCart()
   const { isWishlisted, toggle } = useWishlist()
@@ -25,14 +19,15 @@ export function QuickViewModal() {
 
   const product = products.find(p => p.id === openProductId)
   const copy = product ? productsEn[product.id] : null
-  const purchasable = product ? isPurchasable(product.availability) : true
-  const availabilityInfo = product?.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
+  const purchasable = product ? isPurchasable(product) : true
+  const effectiveAvailability = product ? getEffectiveAvailability(product) : 'available'
+  const availabilityInfo = product && effectiveAvailability !== 'available' ? availabilityLabels[effectiveAvailability] : null
+  const maxQuantity = product ? getMaxOrderQuantity(product) : 99
 
   return <AnimatePresence>
     {product && copy && (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeQuickView} className="fixed inset-0 z-[95] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm">
         <motion.div
-          ref={trapRef}
           initial={{ opacity: 0, scale: .95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: .95, y: 10 }}
@@ -46,7 +41,7 @@ export function QuickViewModal() {
           <div className="relative p-6">
             <button onClick={closeQuickView} aria-label={t('إغلاق', 'Close')} className="absolute end-4 top-4 grid size-8 place-items-center rounded-full hover:bg-burgundy/5"><X size={17} /></button>
             <h2 className="font-ar-heading text-2xl font-semibold text-ink dark:text-ink-dark">{isArabic ? product.name : copy.name}</h2>
-            <p className="mt-3 text-xl font-semibold text-burgundy">{formatPrice(product.price)} {isArabic ? product.currency : 'EGP'}</p>
+            <p className="mt-3 text-xl font-semibold text-burgundy">{product.price} {isArabic ? product.currency : 'EGP'}</p>
             {availabilityInfo && <p className="mt-2 text-sm font-medium text-muted dark:text-muted-dark">{isArabic ? availabilityInfo.ar : availabilityInfo.en}</p>}
             <p className="mt-3 text-sm leading-7 text-muted dark:text-muted-dark">{isArabic ? product.description : copy.description}</p>
             <div className="mt-4 flex gap-1.5">{product.colors.map(color => <i key={color} className="size-3 rounded-full ring-1 ring-black/5" style={{ backgroundColor: color }} />)}</div>
@@ -55,7 +50,7 @@ export function QuickViewModal() {
               <div className={cn('flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark', !purchasable && 'opacity-40')}>
                 <button disabled={!purchasable} onClick={() => setQuantity(v => Math.max(1, v - 1))} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Minus size={15} /></button>
                 <span className="w-8 text-center text-sm text-ink dark:text-ink-dark">{quantity}</span>
-                <button disabled={!purchasable} onClick={() => setQuantity(v => v + 1)} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Plus size={15} /></button>
+                <button disabled={!purchasable || quantity >= maxQuantity} onClick={() => setQuantity(v => Math.min(maxQuantity, v + 1))} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Plus size={15} /></button>
               </div>
               <button
                 disabled={!purchasable}
@@ -65,7 +60,7 @@ export function QuickViewModal() {
                   !purchasable ? 'cursor-not-allowed bg-line text-muted dark:bg-line-dark dark:text-muted-dark' : 'bg-burgundy text-cream hover:bg-burgundy-dark'
                 )}
               >
-                <ShoppingBag size={16} /> {!purchasable ? t('غير متاح', 'Unavailable') : t('أضف للسلة', 'Add to cart')}
+                <ShoppingBag size={16} /> {purchasable ? t('أضف للسلة', 'Add to cart') : t('غير متاح', 'Unavailable')}
               </button>
               <button onClick={() => toggle(product.id)} aria-label={t('المفضلة', 'Wishlist')} className="grid size-11 shrink-0 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={17} className={isWishlisted(product.id) ? 'fill-burgundy' : ''} /></button>
             </div>

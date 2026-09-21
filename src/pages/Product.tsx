@@ -1,25 +1,28 @@
-import { useState } from 'react'
+import { /*useEffect, useRef,*/ useState } from 'react'
 import { Link, useParams } from "react-router-dom";
-import { Check, ChevronLeft, Heart, Minus, Plus, ShoppingBag, Truck, Undo2 } from "lucide-react";
+import { Check, ChevronLeft, Heart, Minus, Plus, ShoppingBag, Truck, Undo2, ZoomIn, MessageCircleQuestion } from "lucide-react";
 import { ProductCard } from "../components/products/ProductCard";
 import { products, productsEn } from "../data/products";
 import { useLocalized } from "../hooks/useLocalized";
 import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../lib/cn";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import { useOrders } from "../context/OrdersContext";
 import { usePageTitle } from '../hooks/usePageTitle'
 import { StarRating } from '../components/ui/StarRating'
-import { getProductRating, getProductReviews } from '../data/reviews'
 import { useTrackRecentlyViewed } from '../hooks/useRecentlyViewed'
 import { RecentlyViewedSection } from '../components/products/RecentlyViewedSection'
 import { MobileStickyBuyBar } from '../components/products/MobileStickyBuyBar'
-import { ZoomIn } from 'lucide-react'
 import { ImageLightbox } from '../components/ui/ImageLightbox'
-import { useScrolled } from '../hooks/useScrolled'
-import { formatPrice } from '../lib/formatPrice';
 import { collections } from '../data/collections'
-import { availabilityLabels, isPurchasable, isMadeToOrder } from '../data/availability'
+import { availabilityLabels, getEffectiveAvailability, isPurchasable, isMadeToOrder, getMaxOrderQuantity } from '../data/availability'
+import { getProductRatingSummary, getApprovedReviews } from '../lib/reviews'
+import { ReviewForm } from '../components/products/ReviewForm'
+import { getAnsweredQuestions } from '../lib/questions'
+import { QuestionForm } from '../components/products/QuestionForm'
 import { RestockNotifyForm } from '../components/products/RestockNotifyForm'
+import { useScrolled } from '../hooks/useScrolled'
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -45,6 +48,7 @@ const tabs = [
   { id: "details", ar: "التفاصيل", en: "Details" },
   { id: "specs", ar: "المواصفات", en: "Specifications" },
   { id: "reviews", ar: "التقييمات", en: "Reviews" },
+  { id: "questions", ar: "الأسئلة", en: "Q&A" },
   { id: "shipping", ar: "الشحن والإرجاع", en: "Shipping & returns" },
 ];
 
@@ -54,28 +58,36 @@ const specs = [
   { ar: ["التركيب", "يثبّت على الحائط بسهولة"], en: ["Installation", "Easy wall mounting"] },
 ];
 
-
 export function Product() {
   const { addItem } = useCart();
+  const { user } = useAuth();
+  const { orders } = useOrders();
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [added, setAdded] = useState(false);
   const { productId } = useParams();
   const { isArabic, t } = useLocalized();
-  usePageTitle(t('تفاصيل المنتج', 'Product Details'))
 
   const { dir } = useLanguage();
   const product = products.find((item) => item.id === productId) ?? products[0];
+
+  usePageTitle(isArabic ? product.name : (productsEn[product.id]?.name ?? product.name))
+
   const copy = productsEn[product.id];
   useTrackRecentlyViewed(product.id)
-  const rating = getProductRating(product.id)
-  const reviews = getProductReviews(product.id)
-  const purchasable = isPurchasable(product.availability)
-  const availabilityInfo = product.availability && product.availability !== 'available' ? availabilityLabels[product.availability] : null
+
+  const [, forceRerender] = useState(0)
+  const rating = getProductRatingSummary(product.id)
+  const reviews = getApprovedReviews(product.id)
+  const questions = getAnsweredQuestions(product.id)
+
+  const purchased = Boolean(user) && orders.some(order => order.userEmail === user?.email && order.lines.some(line => line.productId === product.id))
+
+  const effectiveAvailability = getEffectiveAvailability(product)
+  const purchasable = isPurchasable(product)
+  const madeToOrder = isMadeToOrder(product)
+  const availabilityInfo = effectiveAvailability !== 'available' ? availabilityLabels[effectiveAvailability] : null
+  const maxQuantity = getMaxOrderQuantity(product)
   const categoryTags = collections.filter(collection => product.categoryIds.includes(collection.id))
-
-  const madeToOrder = isMadeToOrder(product.availability)
-  const maxQuantity = product.availability === 'limited' && product.stock !== undefined ? product.stock : 99
-
 
   const name = isArabic ? product.name : copy.name;
   const description = isArabic ? product.description : copy.description;
@@ -93,6 +105,12 @@ export function Product() {
 
   const showStickyBar = useScrolled(560)
 
+  const handleAddToCart = () => {
+    addItem(product.id, quantity)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1800)
+  }
+
   return (
     <div dir={dir} className="pt-[108px] pb-20 md:pb-0">
       <div className="mx-auto max-w-[1440px] px-5 py-7 md:px-10 md:py-10">
@@ -104,7 +122,7 @@ export function Product() {
           <span className="text-ink dark:text-ink-dark">{name}</span>
         </nav>
 
-
+        <RecentlyViewedSection excludeId={product.id} />
 
         <section className="grid gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)] lg:gap-16">
           <div className="lg:order-2">
@@ -126,11 +144,19 @@ export function Product() {
           <div className="lg:order-1 lg:pt-4">
             <span className="inline-flex rounded-full border border-burgundy/20 bg-burgundy/[.04] px-3 py-1 text-xs text-burgundy dark:bg-burgundy/10">{t("الأكثر مبيعًا", "Best seller")}</span>
             <h1 className="mt-4 font-ar-heading text-4xl font-semibold leading-tight text-ink dark:text-ink-dark md:text-5xl">{name}</h1>
+
             <button onClick={() => setTab('reviews')} className="mt-2 flex items-center gap-2 text-sm text-muted transition hover:text-burgundy dark:text-muted-dark">
-              <StarRating rating={rating.average} />
-              <span>{rating.average}</span>
-              <span className="underline underline-offset-2">({rating.count} {t('تقييم', 'reviews')})</span>
+              {rating.count > 0 ? (
+                <>
+                  <StarRating rating={rating.average} />
+                  <span>{rating.average}</span>
+                  <span className="underline underline-offset-2">({rating.count} {t('تقييم', 'reviews')})</span>
+                </>
+              ) : (
+                <span className="underline underline-offset-2">{t('لسه مفيش تقييمات - كن أول من يقيّم', 'No reviews yet - be the first to rate')}</span>
+              )}
             </button>
+
             <div className="mt-2 flex flex-wrap gap-2">
               {categoryTags.map(collection => (
                 <Link key={collection.id} to={`/collections/${collection.id}`} className="rounded-full border border-line px-3 py-1 text-xs text-ink/80 transition hover:border-burgundy hover:text-burgundy dark:border-line-dark dark:text-ink-dark/80">
@@ -138,11 +164,13 @@ export function Product() {
                 </Link>
               ))}
             </div>
+
             <p className="mt-6 max-w-md text-sm leading-8 text-muted dark:text-muted-dark">{description}</p>
-            <p className="mt-5 text-2xl font-semibold text-burgundy">{formatPrice(product.price)} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
+            <p className="mt-5 text-2xl font-semibold text-burgundy">{product.price} <span className="text-base">{isArabic ? product.currency : "EGP"}</span></p>
+
             {availabilityInfo && (
               <p className={cn('mt-2 text-sm font-medium', availabilityInfo.tone === 'burgundy' ? 'text-burgundy' : availabilityInfo.tone === 'gold' ? 'text-gold' : 'text-muted dark:text-muted-dark')}>
-                {product.availability === 'limited' && product.stock !== undefined
+                {effectiveAvailability === 'limited'
                   ? t(`باقي ${product.stock} قطع بس في المخزون`, `Only ${product.stock} left in stock`)
                   : isArabic ? availabilityInfo.ar : availabilityInfo.en}
               </p>
@@ -170,19 +198,17 @@ export function Product() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-ink dark:text-ink-dark">{t("الكمية", "Quantity")}</span>
-                <div className="flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark">
-                  <button onClick={() => setQuantity((v) => Math.max(1, v - 1))} aria-label={t("تقليل الكمية", "Decrease quantity")} className="p-2.5 text-muted hover:text-burgundy dark:text-muted-dark"><Minus size={15} /></button>
+                <div className={cn("flex items-center rounded-lg border bg-paper dark:border-line-dark dark:bg-paper-dark", !purchasable && "opacity-40")}>
+                  <button disabled={!purchasable} onClick={() => setQuantity((v) => Math.max(1, v - 1))} aria-label={t("تقليل الكمية", "Decrease quantity")} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed dark:text-muted-dark"><Minus size={15} /></button>
                   <span className="w-8 text-center text-sm text-ink dark:text-ink-dark">{quantity}</span>
-                  <button disabled={quantity >= maxQuantity} onClick={() => setQuantity((v) => Math.min(maxQuantity, v + 1))} aria-label={t("زيادة الكمية", "Increase quantity")} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-40 dark:text-muted-dark"><Plus size={15} /></button>
+                  <button disabled={!purchasable || quantity >= maxQuantity} onClick={() => setQuantity((v) => Math.min(maxQuantity, v + 1))} aria-label={t("زيادة الكمية", "Increase quantity")} className="p-2.5 text-muted hover:text-burgundy disabled:cursor-not-allowed disabled:opacity-40 dark:text-muted-dark"><Plus size={15} /></button>
                 </div>
               </div>
             </div>
+
             {purchasable ? (
               <div className="mt-6 flex gap-3">
-                <button
-                  onClick={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-burgundy px-5 py-4 text-sm font-medium text-cream transition hover:bg-burgundy-dark"
-                >
+                <button onClick={handleAddToCart} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-burgundy px-5 py-4 text-sm font-medium text-cream transition hover:bg-burgundy-dark">
                   {added ? <><Check size={18} />{t("تمت الإضافة", "Added")}</> : <><ShoppingBag size={18} />{madeToOrder ? t("اطلبه دلوقتي", "Pre-order now") : t("أضف إلى السلة", "Add to cart")}</>}
                 </button>
                 <button onClick={() => setWishlisted((value) => !value)} aria-label={t("إضافة للمفضلة", "Add to wishlist")} className="grid w-14 place-items-center rounded-lg border border-burgundy text-burgundy"><Heart size={19} className={wishlisted ? "fill-burgundy" : ""} /></button>
@@ -226,26 +252,53 @@ export function Product() {
                 </dl>
               )}
               {tab === "reviews" && (
-                <div className="mt-6 space-y-5">
-                  {reviews.map(review => (
-                    <div key={review.id} className="border-b border-line pb-5 dark:border-line-dark">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-ink dark:text-ink-dark">{isArabic ? review.nameAr : review.nameEn}</p>
-                        <StarRating rating={review.rating} size={12} />
-                      </div>
-                      <p className="mt-2 text-sm leading-7 text-muted dark:text-muted-dark">{isArabic ? review.commentAr : review.commentEn}</p>
-                      <p className="mt-1 text-xs text-muted/70 dark:text-muted-dark/70">{new Date(review.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+                <div className="mt-6 space-y-6">
+                  {purchased && <ReviewForm productId={product.id} onSubmitted={() => forceRerender(v => v + 1)} />}
+                  {!purchased && !user && (
+                    <p className="rounded-lg bg-cream px-4 py-3 text-sm text-muted dark:bg-cream-dark dark:text-muted-dark">
+                      {t('سجّل دخولك واشتري المنتج ده الأول عشان تقدر تقيّمه.', 'Sign in and purchase this product first to be able to rate it.')}
+                    </p>
+                  )}
+                  {reviews.length === 0 ? (
+                    <p className="text-sm text-muted dark:text-muted-dark">{t('لسه محدش قيّم المنتج ده.', 'No one has reviewed this product yet.')}</p>
+                  ) : (
+                    <div className="space-y-5">
+                      {reviews.map(review => (
+                        <div key={review.id} className="border-b border-line pb-5 dark:border-line-dark">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-ink dark:text-ink-dark">{review.userName}</p>
+                            <StarRating rating={review.rating} size={12} />
+                          </div>
+                          {review.comment && <p className="mt-2 text-sm leading-7 text-muted dark:text-muted-dark">{review.comment}</p>}
+                          <p className="mt-1 text-xs text-muted/70 dark:text-muted-dark/70">{new Date(review.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+              {tab === "questions" && (
+                <div className="mt-6 space-y-6">
+                  <QuestionForm productId={product.id} onSubmitted={() => forceRerender(v => v + 1)} />
+                  {questions.length === 0 ? (
+                    <p className="flex items-center gap-2 text-sm text-muted dark:text-muted-dark"><MessageCircleQuestion size={16} /> {t('لسه مفيش أسئلة عن المنتج ده.', 'No questions about this product yet.')}</p>
+                  ) : (
+                    <div className="space-y-5">
+                      {questions.map(q => (
+                        <div key={q.id} className="border-b border-line pb-5 dark:border-line-dark">
+                          <p className="text-sm font-medium text-ink dark:text-ink-dark">س: {q.question}</p>
+                          <p className="mt-2 text-sm leading-7 text-muted dark:text-muted-dark">ج: {q.answer}</p>
+                          <p className="mt-1 text-xs text-muted/70 dark:text-muted-dark/70">{q.askedByName} · {new Date(q.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
             <img src={product.image} alt={name} className="aspect-[1.45/1] w-full rounded-2xl object-cover" />
-
           </div>
-
         </section>
-        <RecentlyViewedSection excludeId={product.id} />
 
         <section className="border-t border-line pt-10 dark:border-line-dark md:pt-14">
           <div className="mb-7 flex items-end justify-between">
@@ -264,7 +317,7 @@ export function Product() {
         price={product.price}
         currency={isArabic ? product.currency : 'EGP'}
         image={product.image}
-        onAdd={() => { addItem(product.id, quantity); setAdded(true); setTimeout(() => setAdded(false), 1800) }}
+        onAdd={handleAddToCart}
       />
       <ImageLightbox open={lightboxOpen} images={images} activeIndex={activeImage} alt={name} onClose={() => setLightboxOpen(false)} onIndexChange={setActiveImage} />
     </div>

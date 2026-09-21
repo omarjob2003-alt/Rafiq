@@ -24,7 +24,7 @@ export function Cart() {
   const [city, setCity] = useState('cairo')
 
   const discountAmount = calculateDiscount(subtotal, couponCode)
-  const madeToOrderItems = lines.filter(line => line.product.availability === 'made_to_order')
+  const madeToOrderItems = lines.filter(line => line.product.stockMode === 'made_to_order')
   const hasMadeToOrder = hasMadeToOrderItem(lines.map(line => line.product))
   const estimatedShipping = hasMadeToOrder ? 0 : city === 'cairo' ? (subtotal - discountAmount >= 1000 ? 0 : 60) : 90
   const estimatedTotal = subtotal - discountAmount + estimatedShipping

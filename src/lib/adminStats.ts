@@ -1,5 +1,6 @@
 import type { Order } from '../context/OrdersContext'
 import { products } from '../data/products'
+import { getEffectiveAvailability } from '../data/availability'
 
 export function getTopProducts(orders: Order[], limit = 5) {
   const counts = new Map<string, number>()
@@ -16,7 +17,10 @@ export function getTopProducts(orders: Order[], limit = 5) {
 }
 
 export function getLowStockProducts() {
-  return products.filter(product => product.availability === 'limited' || product.availability === 'unavailable')
+  return products.filter(product => {
+    const availability = getEffectiveAvailability(product)
+    return availability === 'limited' || availability === 'unavailable'
+  })
 }
 
 export function getSalesByDay(orders: Order[], days = 14) {

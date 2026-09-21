@@ -25,7 +25,13 @@ export function CollectionDetail() {
   const { isArabic, t } = useLocalized()
   usePageTitle(t('تفاصيل المجموعة', 'Collection Details'))
   const collection = collections.find(item => item.id === collectionId) ?? collections[0]
-  const story = collectionStories[collection.id]
+  const story = collectionStories[collection.id] ?? {
+    titleAr: collection.name,
+    titleEn: collection.nameEn,
+    textAr: collection.description,
+    textEn: collection.description,
+    image: collection.image,
+  }
   const Icon = icons[collection.id] ?? LayoutGrid
   const collectionProducts = products.filter(product => product.categoryIds.includes(collection.id))
   const relatedArticles = articles.slice(0, 3)
@@ -77,8 +83,8 @@ export function CollectionDetail() {
         {collectionProducts.length === 0
           ? <p className="text-sm text-muted dark:text-muted-dark">{t('منتجات المجموعة دي قريبًا.', 'Products for this collection are coming soon.')}</p>
           : <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 md:gap-x-6 lg:grid-cols-4">
-              {collectionProducts.map((product, index) => <ProductCard key={product.id} product={product} index={index} />)}
-            </div>}
+            {collectionProducts.map((product, index) => <ProductCard key={product.id} product={product} index={index} />)}
+          </div>}
         <Link to={`/shop?category=${collection.id}`} className="mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-burgundy hover:underline sm:hidden">
           {t('تسوق الكل', 'Shop all')}
           <ArrowLeft size={15} className={isArabic ? '' : 'rotate-180'} />

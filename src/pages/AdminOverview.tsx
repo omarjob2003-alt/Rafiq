@@ -4,7 +4,7 @@ import { useOrders } from '../context/OrdersContext'
 import { useLocalized } from '../hooks/useLocalized'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { orderStatuses } from '../data/orderStatuses'
-import { availabilityLabels } from '../data/availability'
+import { availabilityLabels, getEffectiveAvailability } from '../data/availability'
 import { formatPrice } from '../lib/formatPrice'
 import { getMessages } from '../lib/messages'
 import { getTotalExpenses } from '../lib/expenses'
@@ -88,11 +88,12 @@ export function AdminOverview() {
           ? <p className="mt-6 text-center text-sm text-muted dark:text-muted-dark">{t('كل المخزون في وضع كويس.', 'Inventory looks healthy.')}</p>
           : <div className="mt-4 space-y-3">
             {lowStock.map(product => {
-              const info = product.availability ? availabilityLabels[product.availability] : null
+              const availability = getEffectiveAvailability(product)
+              const info = availabilityLabels[availability]
               return <div key={product.id} className="flex items-center gap-3 text-sm">
                 <img src={product.image} alt="" className="size-10 rounded-lg object-cover" />
                 <span className="flex-1 text-ink/85 dark:text-ink-dark/85">{product.name}</span>
-                <span className="text-xs font-medium text-burgundy">{info ? (isArabic ? info.ar : info.en) : ''}{product.availability === 'limited' && product.stock !== undefined ? ` (${product.stock})` : ''}</span>
+                <span className="text-xs font-medium text-burgundy">{info ? (isArabic ? info.ar : info.en) : ''}{availability === 'limited' ? ` (${product.stock})` : ''}</span>
               </div>
             })}
           </div>}
