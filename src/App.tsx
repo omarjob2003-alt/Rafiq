@@ -29,7 +29,9 @@ import { RecentlyViewed } from './pages/RecentlyViewed'
 import { CartDrawer } from './components/layout/CartDrawer'
 import { AdminLogin } from './pages/AdminLogin'
 import { AdminOrders } from './pages/AdminOrders'
-import { RequireAdmin } from './components/layout/RequireAdmin'
+import { RequireAdminPermission } from './components/layout/RequireAdminPermission'
+import { RequireSuperAdmin } from './components/layout/RequireSuperAdmin'
+// import { RequireAdmin } from './components/layout/RequireAdmin'
 import { QuickViewModal } from './components/products/QuickViewModal'
 import { AdminSubscribers } from './pages/AdminSubscribers'
 import { AdminMessages } from './pages/AdminMessages'
@@ -42,6 +44,8 @@ import { AdminReviews } from './pages/AdminReviews'
 import { AdminReturns } from './pages/AdminReturns'
 import { AdminQuestions } from './pages/AdminQuestions'
 import { AdminStockLog } from './pages/AdminStockLog'
+import { AdminSettings } from './pages/AdminSettings'
+import { AdminTopBar } from './components/admin/AdminTopBar'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -53,12 +57,13 @@ function Storefront() {
   const { dir } = useLanguage()
   const { pathname } = useLocation()
   const isCheckout = pathname.startsWith('/checkout')
+  const isAdmin = pathname.startsWith('/admin')
 
   return <div dir={dir} className="min-h-screen bg-cream transition-colors duration-300 dark:bg-cream-dark">
     <a href="#main-content" className="fixed -top-full left-1/2 z-[100] -translate-x-1/2 rounded-full bg-burgundy px-5 py-2.5 text-sm font-medium text-cream focus:top-3 transition-[top]">
       {dir === 'rtl' ? 'تخطي للمحتوى الرئيسي' : 'Skip to main content'}
     </a>
-    {isCheckout ? <CheckoutHeader /> : <Header />}
+    {isCheckout ? <CheckoutHeader /> : isAdmin ? <AdminTopBar /> : <Header />}
     <main id="main-content">
       <Routes>
         <Route path="/" element={<Home />} />
@@ -82,20 +87,21 @@ function Storefront() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/recently-viewed" element={<RecentlyViewed />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/orders" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
-        <Route path="/admin" element={<RequireAdmin><AdminOverview /></RequireAdmin>} />
-        <Route path="/admin/orders/:orderId" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
-        <Route path="/admin/subscribers" element={<RequireAdmin><AdminSubscribers /></RequireAdmin>} />
-        <Route path="/admin/messages" element={<RequireAdmin><AdminMessages /></RequireAdmin>} />
-        <Route path="/admin/products" element={<RequireAdmin><AdminProducts /></RequireAdmin>} />
-        <Route path="/admin/expenses" element={<RequireAdmin><AdminExpenses /></RequireAdmin>} />
-        <Route path="/admin/categories" element={<RequireAdmin><AdminCategories /></RequireAdmin>} />
-        <Route path="/admin/products/new" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
-        <Route path="/admin/products/:productId/edit" element={<RequireAdmin><AdminProductEditor /></RequireAdmin>} />
-        <Route path="/admin/reviews" element={<RequireAdmin><AdminReviews /></RequireAdmin>} />
-        <Route path="/admin/returns" element={<RequireAdmin><AdminReturns /></RequireAdmin>} />
-        <Route path="/admin/questions" element={<RequireAdmin><AdminQuestions /></RequireAdmin>} />
-        <Route path="/admin/stock-log" element={<RequireAdmin><AdminStockLog /></RequireAdmin>} />
+        <Route path="/admin" element={<RequireAdminPermission permission="overview"><AdminOverview /></RequireAdminPermission>} />
+        <Route path="/admin/orders" element={<RequireAdminPermission permission="orders"><AdminOrders /></RequireAdminPermission>} />
+        <Route path="/admin/orders/:orderId" element={<RequireAdminPermission permission="orders"><AdminOrders /></RequireAdminPermission>} />
+        <Route path="/admin/subscribers" element={<RequireAdminPermission permission="subscribers"><AdminSubscribers /></RequireAdminPermission>} />
+        <Route path="/admin/messages" element={<RequireAdminPermission permission="messages"><AdminMessages /></RequireAdminPermission>} />
+        <Route path="/admin/products" element={<RequireAdminPermission permission="products"><AdminProducts /></RequireAdminPermission>} />
+        <Route path="/admin/expenses" element={<RequireAdminPermission permission="expenses"><AdminExpenses /></RequireAdminPermission>} />
+        <Route path="/admin/categories" element={<RequireAdminPermission permission="categories"><AdminCategories /></RequireAdminPermission>} />
+        <Route path="/admin/products/new" element={<RequireAdminPermission permission="products"><AdminProductEditor /></RequireAdminPermission>} />
+        <Route path="/admin/products/:productId/edit" element={<RequireAdminPermission permission="products"><AdminProductEditor /></RequireAdminPermission>} />
+        <Route path="/admin/reviews" element={<RequireAdminPermission permission="reviews"><AdminReviews /></RequireAdminPermission>} />
+        <Route path="/admin/returns" element={<RequireAdminPermission permission="returns"><AdminReturns /></RequireAdminPermission>} />
+        <Route path="/admin/questions" element={<RequireAdminPermission permission="questions"><AdminQuestions /></RequireAdminPermission>} />
+        <Route path="/admin/stock-log" element={<RequireAdminPermission permission="stockLog"><AdminStockLog /></RequireAdminPermission>} />
+        <Route path="/admin/settings" element={<RequireSuperAdmin><AdminSettings /></RequireSuperAdmin>} />
 
 
 
@@ -103,9 +109,9 @@ function Storefront() {
         {/* <Route path="*" element={<Home />} /> */}
       </Routes>
     </main>
-    {!isCheckout && <Footer />}
-    <CartDrawer />
-    <QuickViewModal />
+    {!isCheckout && !isAdmin && <Footer />}
+    {!isAdmin && <CartDrawer />}
+    {!isAdmin && <QuickViewModal />}
   </div>
 }
 

@@ -1,4 +1,4 @@
-import { /*useEffect, useRef,*/ useState } from 'react'
+import { /*useEffect,*/ useRef, useState } from 'react'
 import { Link, useParams } from "react-router-dom";
 import { Check, ChevronLeft, Heart, Minus, Plus, ShoppingBag, Truck, Undo2, ZoomIn, MessageCircleQuestion } from "lucide-react";
 import { ProductCard } from "../components/products/ProductCard";
@@ -23,6 +23,7 @@ import { getAnsweredQuestions } from '../lib/questions'
 import { QuestionForm } from '../components/products/QuestionForm'
 import { RestockNotifyForm } from '../components/products/RestockNotifyForm'
 import { useScrolled } from '../hooks/useScrolled'
+// import { useRef } from 'react'
 
 const galleryImages = [
   "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&q=85&auto=format&fit=crop",
@@ -75,6 +76,7 @@ export function Product() {
   const copy = productsEn[product.id];
   useTrackRecentlyViewed(product.id)
 
+  const tabsSectionRef = useRef<HTMLDivElement>(null)
   const [, forceRerender] = useState(0)
   const rating = getProductRatingSummary(product.id)
   const reviews = getApprovedReviews(product.id)
@@ -122,7 +124,7 @@ export function Product() {
           <span className="text-ink dark:text-ink-dark">{name}</span>
         </nav>
 
-        <RecentlyViewedSection excludeId={product.id} />
+
 
         <section className="grid gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)] lg:gap-16">
           <div className="lg:order-2">
@@ -145,7 +147,7 @@ export function Product() {
             <span className="inline-flex rounded-full border border-burgundy/20 bg-burgundy/[.04] px-3 py-1 text-xs text-burgundy dark:bg-burgundy/10">{t("الأكثر مبيعًا", "Best seller")}</span>
             <h1 className="mt-4 font-ar-heading text-4xl font-semibold leading-tight text-ink dark:text-ink-dark md:text-5xl">{name}</h1>
 
-            <button onClick={() => setTab('reviews')} className="mt-2 flex items-center gap-2 text-sm text-muted transition hover:text-burgundy dark:text-muted-dark">
+            <button onClick={() => { setTab('reviews'); tabsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className="mt-2 flex items-center gap-2 text-sm text-muted transition hover:text-burgundy dark:text-muted-dark">
               {rating.count > 0 ? (
                 <>
                   <StarRating rating={rating.average} />
@@ -231,7 +233,7 @@ export function Product() {
           </div>
         </section>
 
-        <section className="mt-16 border-t border-line pt-1 dark:border-line-dark md:mt-24">
+        <section ref={tabsSectionRef} className="mt-16 border-t border-line pt-1 dark:border-line-dark md:mt-24">
           <div className="flex overflow-x-auto border-b border-line dark:border-line-dark">
             {tabs.map((item) => (
               <button key={item.id} onClick={() => setTab(item.id)} className={cn("shrink-0 border-b-2 px-6 py-4 text-sm transition", tab === item.id ? "border-burgundy text-burgundy" : "border-transparent text-muted hover:text-ink dark:text-muted-dark dark:hover:text-ink-dark")}>{isArabic ? item.ar : item.en}</button>
@@ -309,8 +311,12 @@ export function Product() {
             {products.filter((item) => item.id !== product.id).slice(0, 4).map((item, index) => <ProductCard key={item.id} product={item} index={index} />)}
           </div>
         </section>
+        <section className="mt-16 border-t border-line pt-10 dark:border-line-dark md:mt-24 md:pt-14">
+           <RecentlyViewedSection excludeId={product.id} />
+        </section>
+      
       </div>
-
+     
       <MobileStickyBuyBar
         show={showStickyBar && purchasable}
         name={name}

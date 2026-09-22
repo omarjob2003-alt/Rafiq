@@ -5,19 +5,24 @@ import { useLocalized } from '../hooks/useLocalized'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { products, productsEn } from '../data/products'
 import { collections } from '../data/collections'
-import { availabilityLabels, getEffectiveAvailability } from '../data/availability'
 import { usageTags, colorOptions } from '../data/filters'
 import { addCustomProduct, updateProduct, getEnglishEdit } from '../lib/productOverrides'
 import { slugify } from '../lib/slugify'
 import { AdminLayout } from '../components/admin/AdminLayout'
 import { cn } from '../lib/cn'
-import type { Product, ProductAvailability } from '../types'
+import type { Product, StockMode } from '../types'
 
 const emptyForm = {
   name: '', nameEn: '', description: '', descriptionEn: '',
   price: '', image: '', categoryIds: [] as string[], colors: [] as string[], usage: [] as string[],
-  availability: 'available' as ProductAvailability, stock: '',
+  stockMode: 'stock' as StockMode, stock: '', lowStockThreshold: '',
 }
+
+const stockModeOptions: { value: StockMode; ar: string; en: string }[] = [
+  { value: 'stock', ar: 'بيتباع من مخزون', en: 'Sold from stock' },
+  { value: 'made_to_order', ar: 'يتصنّع عند الطلب', en: 'Made to order' },
+  { value: 'discontinued', ar: 'متوقف نهائيًا', en: 'Discontinued' },
+]
 
 export function AdminProductEditor() {
   const { productId } = useParams()
@@ -39,8 +44,9 @@ export function AdminProductEditor() {
       categoryIds: editingProduct.categoryIds,
       colors: editingProduct.colors,
       usage: editingProduct.usage,
-      availability: getEffectiveAvailability(editingProduct),
-      stock: editingProduct.stock !== undefined ? String(editingProduct.stock) : '',
+      stockMode: editingProduct.stockMode,
+      stock: String(editingProduct.stock ?? 0),
+      lowStockThreshold: editingProduct.lowStockThreshold !== undefined ? String(editingProduct.lowStockThreshold) : '',
     }
   })
 
@@ -60,9 +66,9 @@ export function AdminProductEditor() {
       categoryIds: form.categoryIds,
       colors: form.colors,
       usage: form.usage,
-      availability: form.availability,
-      stock: form.stock !== '' ? Number(form.stock) : 0,
-      stockMode: (form.availability === 'made_to_order' ? 'made_to_order' : form.availability === 'unavailable' ? 'discontinued' : 'stock') as Product['stockMode'],
+      stockMode: form.stockMode,
+      stock: form.stockMode === 'stock' && form.stock !== '' ? Number(form.stock) : 0,
+      lowStockThreshold: form.lowStockThreshold !== '' ? Number(form.lowStockThreshold) : undefined,
     }
 
     if (editingProduct) {
@@ -148,18 +154,23 @@ export function AdminProductEditor() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <label className="block text-sm">
-          <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الحالة', 'Availability')}</span>
-          <select value={form.availability} onChange={e => setForm(prev => ({ ...prev, availability: e.target.value as ProductAvailability }))} className="w-full rounded-lg border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark">
-            {(Object.keys(availabilityLabels) as ProductAvailability[]).map(key => <option key={key} value={key}>{isArabic ? availabilityLabels[key].ar : availabilityLabels[key].en}</option>)}
+          <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('طريقة البيع', 'Sales mode')}</span>
+          <select value={form.stockMode} onChange={e => setForm(prev => ({ ...prev, stockMode: e.target.value as StockMode }))} className="w-full rounded-lg border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark">
+            {stockModeOptions.map(option => <option key={option.value} value={option.value}>{isArabic ? option.ar : option.en}</option>)}
           </select>
         </label>
         <label className="block text-sm">
-          <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الكمية (لو كمية محدودة)', 'Stock (if limited)')}</span>
-          <input type="number" min={0} value={form.stock} onChange={e => setForm(prev => ({ ...prev, stock: e.target.value }))} disabled={form.availability === 'made_to_order' || form.availability === 'unavailable'} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+          <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('الكمية في المخزون', 'Stock quantity')}</span>
+          <input type="number" min={0} value={form.stock} onChange={e => setForm(prev => ({ ...prev, stock: e.target.value }))} disabled={form.stockMode !== 'stock'} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{t('حد "كمية محدودة" (اختياري)', 'Low-stock threshold (optional)')}</span>
+          <input type="number" min={0} value={form.lowStockThreshold} onChange={e => setForm(prev => ({ ...prev, lowStockThreshold: e.target.value }))} disabled={form.stockMode !== 'stock'} placeholder="5" className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
         </label>
       </div>
+      <p className="text-xs text-muted dark:text-muted-dark">{t('لو سبت "حد الكمية المحدودة" فاضي، هياخد القيمة الافتراضية (5 قطع). الحالة اللي بتظهر للعميل بتتحسب تلقائيًا من الرقم.', 'If you leave the low-stock threshold empty, it defaults to 5 units. The status shown to customers is calculated automatically from this number.')}</p>
 
       {!editingProduct && <p className="text-xs text-muted dark:text-muted-dark">{t('معرّف المنتج هيتولّد تلقائيًا من الاسم الإنجليزي، ومينفعش يتغيّر بعد الإنشاء.', "The product's ID is generated automatically from the English name, and cannot be changed after creation.")}</p>}
 

@@ -112,10 +112,12 @@ export const products: Product[] = [
   },
 ];
 
-export const bestSellers: Product[] = products.filter((product) =>
-  ["desk-mat", "pegboard", "weekly-calendar", "coaster", "key-holder"].includes(product.id)
-);
 
+const bestSellerIds = ["desk-mat", "pegboard", "weekly-calendar", "coaster", "key-holder"];
+
+export function getBestSellers(): Product[] {
+  return bestSellerIds.map(id => products.find(p => p.id === id)).filter((p): p is Product => Boolean(p));
+}
 export const productsEn: Record<string, { name: string; description: string }> = {
   "desk-mat": { name: "Desk mat", description: "Premium vegan leather for a calmer desk." },
   pegboard: { name: "Rafiq pegboard", description: "A refined place for tools, cables and ideas." },

@@ -51,7 +51,7 @@ export function Header() {
     <div className="fixed inset-x-0 top-0 z-50 h-8 bg-burgundy-dark text-cream">
       <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-5 text-[10px] md:px-10 md:text-[11px]">
         <span className="hidden items-center gap-1.5 sm:flex"><MapPin size={12} /> {t('التوصيل إلى: القاهرة', 'Delivering to: Cairo')}</span>
-        <span className="mx-auto inline-flex items-center gap-2 font-medium"><span>⌁</span>{t('شحن مجاني للطلبات فوق ١٬٠٠٠ جنيه', 'Free shipping on orders over EGP 1,000')}</span>
+        <span className="mx-auto inline-flex items-center gap-2 font-medium"><span>⌁</span>{t('شحن مجاني للطلبات فوق١٬٠٠٠ جنيه', 'Free shipping on orders over EGP 1,000')}</span>
         <span className="hidden sm:block">{t('مصر', 'Egypt')}</span>
       </div>
     </div>
