@@ -46,6 +46,9 @@ import { AdminQuestions } from './pages/AdminQuestions'
 import { AdminStockLog } from './pages/AdminStockLog'
 import { AdminSettings } from './pages/AdminSettings'
 import { AdminTopBar } from './components/admin/AdminTopBar'
+import { CartAbandonmentTracker } from './components/CartAbandonmentTracker'
+import { AdminAbandonedCarts } from './pages/AdminAbandonedCarts'
+
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -72,7 +75,7 @@ function Storefront() {
         <Route path="/collections/:collectionId" element={<CollectionDetail />} />
         <Route path="/products/:productId" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
         <Route path="/about" element={<About />} />
         <Route path="/search" element={<Search />} />
         <Route path="/login" element={<Login />} />
@@ -102,6 +105,7 @@ function Storefront() {
         <Route path="/admin/questions" element={<RequireAdminPermission permission="questions"><AdminQuestions /></RequireAdminPermission>} />
         <Route path="/admin/stock-log" element={<RequireAdminPermission permission="stockLog"><AdminStockLog /></RequireAdminPermission>} />
         <Route path="/admin/settings" element={<RequireSuperAdmin><AdminSettings /></RequireSuperAdmin>} />
+        <Route path="/admin/abandoned-carts" element={<RequireAdminPermission permission="abandonedCarts"><AdminAbandonedCarts /></RequireAdminPermission>} />
 
 
 
@@ -109,6 +113,7 @@ function Storefront() {
         {/* <Route path="*" element={<Home />} /> */}
       </Routes>
     </main>
+    <CartAbandonmentTracker />
     {!isCheckout && !isAdmin && <Footer />}
     {!isAdmin && <CartDrawer />}
     {!isAdmin && <QuickViewModal />}

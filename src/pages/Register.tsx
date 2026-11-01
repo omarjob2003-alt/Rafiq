@@ -2,27 +2,29 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLocalized } from '../hooks/useLocalized'
-import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Register() {
   const { register } = useAuth()
   const { t } = useLocalized()
-  usePageTitle(t('إنشاء حساب', 'Create an account'))
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    setError('')
     if (password.length < 6) {
       setError(t('كلمة المرور لازم تكون 6 أحرف على الأقل.', 'Password must be at least 6 characters.'))
       return
     }
-    const result = register(name, email, password)
+    setLoading(true)
+    const result = await register(name, email, password)
+    setLoading(false)
     if (result.success) navigate('/account', { replace: true })
-    else setError(t('البريد الإلكتروني ده مستخدم بالفعل.', 'This email is already registered.'))
+    else setError(result.error ?? t('حصل خطأ أثناء إنشاء الحساب.', 'Something went wrong creating your account.'))
   }
 
   return <div className="flex min-h-[75vh] items-center justify-center px-5 pt-[108px]">
@@ -46,7 +48,9 @@ export function Register() {
 
         {error && <p className="text-sm text-burgundy">{error}</p>}
 
-        <button type="submit" className="w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('إنشاء الحساب', 'Create account')}</button>
+        <button type="submit" disabled={loading} className="w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark disabled:cursor-not-allowed disabled:opacity-60">
+          {loading ? t('جاري الإنشاء...', 'Creating account...') : t('إنشاء الحساب', 'Create account')}
+        </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted dark:text-muted-dark">

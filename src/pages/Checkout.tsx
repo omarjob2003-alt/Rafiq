@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Check, CreditCard, MapPin, Plus, Truck } from 'lucide-react'
 import { useCart } from '../context/CartContext'
@@ -12,17 +12,16 @@ import { calculateDiscount } from '../data/coupons'
 import { AddressCascadeFields, type AddressLocation } from '../components/checkout/AddressCascadeFields'
 import { useAddressBook } from '../context/AddressBookContext'
 import { governorates } from '../data/egyptLocations'
-import { markOrderSeen } from '../lib/orderSeenTracker'
+import { hasMadeToOrderItem } from '../data/availability'
 import { formatPrice } from '../lib/formatPrice'
-import { getMaxOrderQuantity, hasMadeToOrderItem, isPurchasable } from '../data/availability'
-import { adjustStock } from '../lib/productOverrides'
-
+import { api, ApiError } from '../lib/apiClient'
+import type { OrderDto } from '../lib/ordersApi'
 
 export function Checkout() {
   const { addOrder } = useOrders()
   const { user } = useAuth()
   const { addresses, defaultAddressId, addAddress } = useAddressBook()
-  const { items, clearCart, couponCode } = useCart()
+  const { items, couponCode, refreshCart } = useCart()
   const { t } = useLocalized()
   usePageTitle(t('إتمام الطلب', 'Checkout'))
 
@@ -31,16 +30,24 @@ export function Checkout() {
   const [phone, setPhone] = useState('')
   const [altPhone, setAltPhone] = useState('')
 
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(defaultAddressId)
-  const [useNewAddress, setUseNewAddress] = useState(addresses.length === 0)
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [useNewAddress, setUseNewAddress] = useState(true)
+  const [addressTouched, setAddressTouched] = useState(false)
   const [location, setLocation] = useState<AddressLocation>({ governorateId: null, cityId: null, customCity: '', district: '' })
   const [street, setStreet] = useState('')
   const [saveNewAddress, setSaveNewAddress] = useState(true)
 
   const [shipping, setShipping] = useState<'standard' | 'express'>('standard')
-  const [payment, setPayment] = useState<'cod' | 'card'>('cod')
-  const [placed, setPlaced] = useState(false)
-  const [orderNumber, setOrderNumber] = useState('')
+  const [placedOrder, setPlacedOrder] = useState<OrderDto | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  // العناوين بتتحمّل من السيرفر بعد فتح الصفحة، فنختار الافتراضي أول ما توصل (لو المستخدم لسه ماغيّرش حاجة)
+  useEffect(() => {
+    if (addressTouched || addresses.length === 0) return
+    setSelectedAddressId(defaultAddressId ?? addresses[0].id)
+    setUseNewAddress(false)
+  }, [addresses, defaultAddressId, addressTouched])
 
   const lines = items
     .map(item => ({ ...item, product: products.find(p => p.id === item.productId) }))
@@ -53,73 +60,84 @@ export function Checkout() {
   const shippingCost = hasMadeToOrder ? 0 : shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
   const total = subtotal - discountAmount + shippingCost
 
-  if (!placed && lines.length === 0) return <Navigate to="/cart" replace />
+  if (!placedOrder && lines.length === 0) return <Navigate to="/cart" replace />
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    setError('')
 
-    const unavailableLine = lines.find(line => !isPurchasable(line.product) || line.quantity > getMaxOrderQuantity(line.product))
-    if (unavailableLine) {
-      window.alert(t('الكمية المطلوبة لم تعد متاحة. راجع السلة ثم حاول مرة أخرى.', 'The requested quantity is no longer available. Please review your cart and try again.'))
+    const governorate = governorates.find(g => g.id === location.governorateId)
+    const city = governorate?.cities.find(c => c.id === location.cityId)
+    const cityLabel = city ? city.ar : location.customCity.trim()
+
+    if (useNewAddress) {
+      if (!governorate || !cityLabel) { setError(t('اختار المحافظة والمدينة.', 'Please choose a governorate and a city.')); return }
+    } else if (!selectedAddressId) {
+      setError(t('اختار عنوان الشحن.', 'Please choose a shipping address.'))
       return
     }
 
-    let addressText = ''
-    if (useNewAddress) {
-      const gov = governorates.find(g => g.id === location.governorateId)
-      const city = gov?.cities.find(c => c.id === location.cityId)
-      const cityLabel = city ? city.ar : location.customCity
-      addressText = [street, location.district, cityLabel, gov?.ar].filter(Boolean).join('، ')
-    } else {
-      const selected = addresses.find(a => a.id === selectedAddressId)
-      if (selected) {
-        const gov = governorates.find(g => g.id === selected.governorateId)
-        const city = gov?.cities.find(c => c.id === selected.cityId)
-        addressText = [selected.street, selected.district, city?.ar ?? selected.customCity, gov?.ar].filter(Boolean).join('، ')
+    const addressPart = useNewAddress
+      ? {
+        shippingCity: governorate!.ar,
+        shippingArea: [cityLabel, location.district].filter(Boolean).join('، '),
+        shippingStreetAddress: street,
+        shippingNotes: null,
       }
-    }
+      : { addressId: Number(selectedAddressId) }
 
-    lines.forEach(line => {
-      adjustStock(line.product.id, -line.quantity, 'sale', products, `${t('طلب', 'Order')} ${orderNumber || ''}`)
-    })
-
-    const id = addOrder({
-      lines: lines.map(line => ({ productId: line.productId, quantity: line.quantity, price: line.product.price })),
-      total,
-      userEmail: user?.email ?? null,
-      customerName: fullName,
-      customerEmail: email,
-      customerPhone: phone,
-      altPhone,
-      addressText,
-    })
-    markOrderSeen(id, 'received')
-    lines.forEach(line => adjustStock(line.productId, -line.quantity, 'sale', products, 'Order ' + id))
-
-    if (useNewAddress && saveNewAddress) {
-      addAddress({
-        label: t('عنوان من الطلب', 'Order address'),
-        governorateId: location.governorateId,
-        cityId: location.cityId,
-        customCity: location.customCity,
-        district: location.district,
-        street,
-        phone,
+    setSubmitting(true)
+    try {
+      const order = await api.post<OrderDto>('/orders', {
+        contactName: fullName,
+        contactPhone: phone,
+        contactAlternatePhone: altPhone || null,
+        contactEmail: email,
+        ...addressPart,
+        shippingMethod: shipping === 'express' && !hasMadeToOrder ? 'Express' : 'Standard',
+        paymentMethod: 'CashOnDelivery',
+        couponCode: couponCode ?? null,
       })
-    }
 
-    setOrderNumber(id)
-    setPlaced(true)
-    clearCart()
+      // نسخة محلية مؤقتة عشان لوحة الأدمن (لسه من غير API) تفضل شايفة الطلبات
+      addOrder({
+        lines: order.items.map(item => ({ productId: item.productId, quantity: item.quantity, price: item.unitPrice })),
+        total: order.total,
+        userEmail: user?.email ?? null,
+        customerName: fullName,
+        customerEmail: email,
+        customerPhone: phone,
+        altPhone,
+        addressText: [order.shippingStreetAddress, order.shippingArea, order.shippingCity].filter(Boolean).join('، '),
+      }, order.orderNumber)
+
+      setPlacedOrder(order)
+
+      if (useNewAddress && saveNewAddress) {
+        await addAddress({ label: '', governorateId: location.governorateId, cityId: location.cityId, customCity: location.customCity, district: location.district, street, phone })
+      }
+      await refreshCart()
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : t('تعذر إتمام الطلب، حاول تاني.', "We couldn't place your order. Please try again."))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  if (placed) {
+  if (placedOrder) {
     return <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-5 text-center">
       <span className="grid size-16 place-items-center rounded-full bg-burgundy/[.08] text-burgundy dark:bg-burgundy/20"><Check size={28} /></span>
       <h1 className="font-ar-heading text-3xl font-semibold text-ink dark:text-ink-dark">{t('تم استلام طلبك', 'Your order is confirmed')}</h1>
-      <p className="max-w-sm text-sm leading-7 text-muted dark:text-muted-dark">{t('شكرًا لثقتك في رفيق. هنبعتلك تفاصيل الشحن على بريدك الإلكتروني قريبًا.', 'Thank you for trusting Rafiq. We will send your shipping details by email shortly.')}</p>
-      <p className="rounded-full bg-cream px-5 py-2 text-sm font-medium text-ink dark:bg-cream-dark dark:text-ink-dark">{t('رقم الطلب', 'Order number')}: {orderNumber}</p>
-      <Link to="/" className="mt-2 rounded-full bg-burgundy px-7 py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('العودة للرئيسية', 'Back to home')}</Link>
+      <p className="max-w-sm text-sm leading-7 text-muted dark:text-muted-dark">{t('شكرًا لثقتك في رفيق. تقدر تتابع حالة طلبك في أي وقت من صفحة "طلباتي".', 'Thank you for trusting Rafiq. You can follow your order any time from "My orders".')}</p>
+      <p className="rounded-full bg-cream px-5 py-2 text-sm font-medium text-ink dark:bg-cream-dark dark:text-ink-dark">{t('رقم الطلب', 'Order number')}: {placedOrder.orderNumber}</p>
+      <p className="text-sm text-muted dark:text-muted-dark">
+        {t('الإجمالي', 'Total')}: <span className="font-semibold text-burgundy">{formatPrice(placedOrder.total)} {t('جنيه', 'EGP')}</span>
+        {placedOrder.shippingCost > 0 && <> · {t('شامل الشحن', 'incl. shipping')} {formatPrice(placedOrder.shippingCost)}</>}
+      </p>
+      <div className="mt-2 flex flex-wrap justify-center gap-3">
+        <Link to={`/track-order?order=${placedOrder.orderNumber}`} className="rounded-full bg-burgundy px-7 py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('تتبع الطلب', 'Track order')}</Link>
+        <Link to="/" className="rounded-full border border-line px-7 py-3.5 text-sm font-medium text-ink transition hover:border-burgundy dark:border-line-dark dark:text-ink-dark">{t('العودة للرئيسية', 'Back to home')}</Link>
+      </div>
     </div>
   }
 
@@ -170,17 +188,17 @@ export function Checkout() {
                 return <button
                   key={address.id}
                   type="button"
-                  onClick={() => { setSelectedAddressId(address.id); setUseNewAddress(false) }}
+                  onClick={() => { setAddressTouched(true); setSelectedAddressId(address.id); setUseNewAddress(false) }}
                   className={cn('flex w-full items-start gap-3 rounded-xl border p-4 text-start transition dark:border-line-dark', !useNewAddress && selectedAddressId === address.id ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line hover:border-burgundy/30')}
                 >
                   <MapPin size={17} className="mt-0.5 shrink-0 text-burgundy" />
                   <span>
-                    <span className="block text-sm font-medium text-ink dark:text-ink-dark">{address.label}</span>
+                    <span className="block text-sm font-medium text-ink dark:text-ink-dark">{address.label || cityLabel}</span>
                     <span className="block text-xs text-muted dark:text-muted-dark">{[address.street, address.district, cityLabel, gov?.ar].filter(Boolean).join('، ')}</span>
                   </span>
                 </button>
               })}
-              <button type="button" onClick={() => setUseNewAddress(true)} className={cn('flex w-full items-center gap-2 rounded-xl border p-4 text-sm transition dark:border-line-dark', useNewAddress ? 'border-burgundy bg-burgundy/[.03] text-burgundy dark:bg-burgundy/10' : 'border-dashed border-line text-muted hover:border-burgundy/30 dark:text-muted-dark')}>
+              <button type="button" onClick={() => { setAddressTouched(true); setUseNewAddress(true) }} className={cn('flex w-full items-center gap-2 rounded-xl border p-4 text-sm transition dark:border-line-dark', useNewAddress ? 'border-burgundy bg-burgundy/[.03] text-burgundy dark:bg-burgundy/10' : 'border-dashed border-line text-muted hover:border-burgundy/30 dark:text-muted-dark')}>
                 <Plus size={16} /> {t('عنوان جديد', 'New address')}
               </button>
             </div>
@@ -198,7 +216,6 @@ export function Checkout() {
           )}
         </section>
 
-
         <section>
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٣. طريقة الشحن', '3. Shipping method')}</h2>
           {hasMadeToOrder && (
@@ -207,7 +224,7 @@ export function Checkout() {
             </p>
           )}
           <div className="mt-4 space-y-3">
-            <OptionRow icon={Truck} active={shipping === 'standard' || hasMadeToOrder} onClick={() => setShipping('standard')} title={hasMadeToOrder ? t('شحن بعد التصنيع', 'Shipping after production') : t('شحن عادي', 'Standard shipping')} subtitle={hasMadeToOrder ? t('خلال ١٠ إلى ١٤ يوم عمل', 'Within 10–14 business days') : t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={hasMadeToOrder || subtotal >= 1000 ? t('مجاني', 'Free') : `60 ${t('جنيه', 'EGP')}`} />
+            <OptionRow icon={Truck} active={shipping === 'standard' || hasMadeToOrder} onClick={() => setShipping('standard')} title={hasMadeToOrder ? t('شحن بعد التصنيع', 'Shipping after production') : t('شحن عادي', 'Standard shipping')} subtitle={hasMadeToOrder ? t('خلال ١٠ إلى ١٤ يوم عمل', 'Within 10–14 business days') : t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={hasMadeToOrder || subtotal - discountAmount >= 1000 ? t('مجاني', 'Free') : `60 ${t('جنيه', 'EGP')}`} />
             {!hasMadeToOrder && <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={`90 ${t('جنيه', 'EGP')}`} />}
           </div>
         </section>
@@ -215,13 +232,8 @@ export function Checkout() {
         <section>
           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٤. طريقة الدفع', '4. Payment method')}</h2>
           <div className="mt-4 space-y-3">
-            <OptionRow icon={CreditCard} active={payment === 'cod'} onClick={() => setPayment('cod')} title={t('الدفع عند الاستلام', 'Cash on delivery')} subtitle={t('ادفع نقدًا لما طلبك يوصلك', 'Pay in cash when your order arrives')} />
-            <OptionRow icon={CreditCard} active={payment === 'card'} onClick={() => setPayment('card')} title={t('بطاقة ائتمان', 'Credit card')} subtitle={t('فيزا أو ماستركارد', 'Visa or Mastercard')} />
-            {payment === 'card' && <div className="grid gap-4 rounded-xl border border-line p-4 dark:border-line-dark sm:grid-cols-2">
-              <Field label={t('رقم البطاقة', 'Card number')} required className="sm:col-span-2" />
-              <Field label={t('تاريخ الانتهاء', 'Expiry date')} required />
-              <Field label="CVC" required />
-            </div>}
+            <OptionRow icon={CreditCard} active onClick={() => { }} title={t('الدفع عند الاستلام', 'Cash on delivery')} subtitle={t('ادفع نقدًا لما طلبك يوصلك', 'Pay in cash when your order arrives')} />
+            <OptionRow icon={CreditCard} active={false} disabled onClick={() => { }} title={t('بطاقة ائتمان', 'Credit card')} subtitle={t('قريبًا', 'Coming soon')} />
           </div>
         </section>
       </div>
@@ -235,18 +247,22 @@ export function Checkout() {
               <span className="absolute -left-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-burgundy text-[10px] font-bold text-cream">{line.quantity}</span>
             </div>
             <span className="flex-1 text-ink/80 dark:text-ink-dark/80">{line.product.name}</span>
-            <span className="text-ink dark:text-ink-dark">{line.product.price * line.quantity} {t('جنيه', 'EGP')}</span>
+            <span className="text-ink dark:text-ink-dark">{formatPrice(line.product.price * line.quantity)} {t('جنيه', 'EGP')}</span>
           </div>)}
         </div>
         <div className="mt-4 space-y-2.5 text-sm">
           <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{formatPrice(subtotal)} {t('جنيه', 'EGP')}</span></div>
           {couponCode && <div className="flex justify-between text-burgundy"><span>{t(`خصم (${couponCode})`, `Discount (${couponCode})`)}</span><span>-{formatPrice(discountAmount)} {t('جنيه', 'EGP')}</span></div>}
-          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{formatPrice(shippingCost === 0 ? 0 : shippingCost)} {t('جنيه', 'EGP')}</span></div>
+          <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن (تقديري)', 'Shipping (estimated)')}</span><span>{shippingCost === 0 ? t('مجاني', 'Free') : `${formatPrice(shippingCost)} ${t('جنيه', 'EGP')}`}</span></div>
         </div>
         <div className="mt-4 flex justify-between border-t border-line pt-4 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
-          <span>{t('الإجمالي', 'Total')}</span><span>{formatPrice(total)} {t('جنيه', 'EGP')}</span>
+          <span>{t('الإجمالي المتوقع', 'Estimated total')}</span><span>{formatPrice(total)} {t('جنيه', 'EGP')}</span>
         </div>
-        <button type="submit" className="mt-6 w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('تأكيد الطلب', 'Place order')}</button>
+        <p className="mt-2 text-xs text-muted dark:text-muted-dark">{t('الإجمالي النهائي بيظهر بعد تأكيد الطلب.', 'The final total is shown once the order is confirmed.')}</p>
+        {error && <p className="mt-4 rounded-lg bg-burgundy/[.06] px-3 py-2.5 text-sm text-burgundy dark:bg-burgundy/15">{error}</p>}
+        <button type="submit" disabled={submitting} className="mt-6 w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark disabled:cursor-not-allowed disabled:opacity-60">
+          {submitting ? t('جاري تأكيد الطلب...', 'Placing your order...') : t('تأكيد الطلب', 'Place order')}
+        </button>
       </aside>
     </form>
   </div>
@@ -259,8 +275,8 @@ function Field({ label, className, ...props }: { label: string; className?: stri
   </label>
 }
 
-function OptionRow({ icon: Icon, active, onClick, title, subtitle, price }: { icon: typeof Truck; active: boolean; onClick: () => void; title: string; subtitle: string; price?: string }) {
-  return <button type="button" onClick={onClick} className={cn('flex w-full items-center gap-3 rounded-xl border p-4 text-start transition dark:border-line-dark', active ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line hover:border-burgundy/30')}>
+function OptionRow({ icon: Icon, active, onClick, title, subtitle, price, disabled }: { icon: typeof Truck; active: boolean; onClick: () => void; title: string; subtitle: string; price?: string; disabled?: boolean }) {
+  return <button type="button" disabled={disabled} onClick={onClick} className={cn('flex w-full items-center gap-3 rounded-xl border p-4 text-start transition dark:border-line-dark', disabled && 'cursor-not-allowed opacity-50', active ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line hover:border-burgundy/30')}>
     <span className={cn('grid size-9 shrink-0 place-items-center rounded-full', active ? 'bg-burgundy text-cream' : 'bg-cream text-ink dark:bg-cream-dark dark:text-ink-dark')}><Icon size={16} /></span>
     <span className="flex-1">
       <span className="block text-sm font-medium text-ink dark:text-ink-dark">{title}</span>
@@ -269,3 +285,291 @@ function OptionRow({ icon: Icon, active, onClick, title, subtitle, price }: { ic
     {price && <span className="text-sm font-medium text-ink dark:text-ink-dark">{price}</span>}
   </button>
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { useState, type FormEvent } from 'react'
+// import { Link, Navigate } from 'react-router-dom'
+// import { Check, CreditCard, MapPin, Plus, Truck } from 'lucide-react'
+// import { useCart } from '../context/CartContext'
+// import { useAuth } from '../context/AuthContext'
+// import { useLocalized } from '../hooks/useLocalized'
+// import { products } from '../data/products'
+// import { cn } from '../lib/cn'
+// import { useOrders } from '../context/OrdersContext'
+// import { usePageTitle } from '../hooks/usePageTitle'
+// import { calculateDiscount } from '../data/coupons'
+// import { AddressCascadeFields, type AddressLocation } from '../components/checkout/AddressCascadeFields'
+// import { useAddressBook } from '../context/AddressBookContext'
+// import { governorates } from '../data/egyptLocations'
+// import { markOrderSeen } from '../lib/orderSeenTracker'
+// import { formatPrice } from '../lib/formatPrice'
+// import { getMaxOrderQuantity, hasMadeToOrderItem, isPurchasable } from '../data/availability'
+// import { adjustStock } from '../lib/productOverrides'
+
+
+// export function Checkout() {
+//   const { addOrder } = useOrders()
+//   const { user } = useAuth()
+//   const { addresses, defaultAddressId, addAddress } = useAddressBook()
+//   const { items, clearCart, couponCode } = useCart()
+//   const { t } = useLocalized()
+//   usePageTitle(t('إتمام الطلب', 'Checkout'))
+
+//   const [fullName, setFullName] = useState(user?.name ?? '')
+//   const [email, setEmail] = useState(user?.email ?? '')
+//   const [phone, setPhone] = useState('')
+//   const [altPhone, setAltPhone] = useState('')
+
+//   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(defaultAddressId)
+//   const [useNewAddress, setUseNewAddress] = useState(addresses.length === 0)
+//   const [location, setLocation] = useState<AddressLocation>({ governorateId: null, cityId: null, customCity: '', district: '' })
+//   const [street, setStreet] = useState('')
+//   const [saveNewAddress, setSaveNewAddress] = useState(true)
+
+//   const [shipping, setShipping] = useState<'standard' | 'express'>('standard')
+//   const [payment, setPayment] = useState<'cod' | 'card'>('cod')
+//   const [placed, setPlaced] = useState(false)
+//   const [orderNumber, setOrderNumber] = useState('')
+
+//   const lines = items
+//     .map(item => ({ ...item, product: products.find(p => p.id === item.productId) }))
+//     .filter((line): line is typeof line & { product: NonNullable<typeof line.product> } => Boolean(line.product))
+
+//   const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
+//   const discountAmount = calculateDiscount(subtotal, couponCode)
+//   const madeToOrderItems = lines.filter(line => line.product.stockMode === 'made_to_order')
+//   const hasMadeToOrder = hasMadeToOrderItem(lines.map(line => line.product))
+//   const shippingCost = hasMadeToOrder ? 0 : shipping === 'express' ? 90 : (subtotal - discountAmount) >= 1000 ? 0 : 60
+//   const total = subtotal - discountAmount + shippingCost
+
+//   if (!placed && lines.length === 0) return <Navigate to="/cart" replace />
+
+//   const handleSubmit = (event: FormEvent) => {
+//     event.preventDefault()
+
+//     const unavailableLine = lines.find(line => !isPurchasable(line.product) || line.quantity > getMaxOrderQuantity(line.product))
+//     if (unavailableLine) {
+//       window.alert(t('الكمية المطلوبة لم تعد متاحة. راجع السلة ثم حاول مرة أخرى.', 'The requested quantity is no longer available. Please review your cart and try again.'))
+//       return
+//     }
+
+//     let addressText = ''
+//     if (useNewAddress) {
+//       const gov = governorates.find(g => g.id === location.governorateId)
+//       const city = gov?.cities.find(c => c.id === location.cityId)
+//       const cityLabel = city ? city.ar : location.customCity
+//       addressText = [street, location.district, cityLabel, gov?.ar].filter(Boolean).join('، ')
+//     } else {
+//       const selected = addresses.find(a => a.id === selectedAddressId)
+//       if (selected) {
+//         const gov = governorates.find(g => g.id === selected.governorateId)
+//         const city = gov?.cities.find(c => c.id === selected.cityId)
+//         addressText = [selected.street, selected.district, city?.ar ?? selected.customCity, gov?.ar].filter(Boolean).join('، ')
+//       }
+//     }
+
+//     lines.forEach(line => {
+//       adjustStock(line.product.id, -line.quantity, 'sale', products, `${t('طلب', 'Order')} ${orderNumber || ''}`)
+//     })
+
+//     const id = addOrder({
+//       lines: lines.map(line => ({ productId: line.productId, quantity: line.quantity, price: line.product.price })),
+//       total,
+//       userEmail: user?.email ?? null,
+//       customerName: fullName,
+//       customerEmail: email,
+//       customerPhone: phone,
+//       altPhone,
+//       addressText,
+//     })
+//     markOrderSeen(id, 'received')
+//     lines.forEach(line => adjustStock(line.productId, -line.quantity, 'sale', products, 'Order ' + id))
+
+//     if (useNewAddress && saveNewAddress) {
+//       addAddress({
+//         label: t('عنوان من الطلب', 'Order address'),
+//         governorateId: location.governorateId,
+//         cityId: location.cityId,
+//         customCity: location.customCity,
+//         district: location.district,
+//         street,
+//         phone,
+//       })
+//     }
+
+//     setOrderNumber(id)
+//     setPlaced(true)
+//     clearCart()
+//   }
+
+//   if (placed) {
+//     return <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 px-5 text-center">
+//       <span className="grid size-16 place-items-center rounded-full bg-burgundy/[.08] text-burgundy dark:bg-burgundy/20"><Check size={28} /></span>
+//       <h1 className="font-ar-heading text-3xl font-semibold text-ink dark:text-ink-dark">{t('تم استلام طلبك', 'Your order is confirmed')}</h1>
+//       <p className="max-w-sm text-sm leading-7 text-muted dark:text-muted-dark">{t('شكرًا لثقتك في رفيق. هنبعتلك تفاصيل الشحن على بريدك الإلكتروني قريبًا.', 'Thank you for trusting Rafiq. We will send your shipping details by email shortly.')}</p>
+//       <p className="rounded-full bg-cream px-5 py-2 text-sm font-medium text-ink dark:bg-cream-dark dark:text-ink-dark">{t('رقم الطلب', 'Order number')}: {orderNumber}</p>
+//       <Link to="/" className="mt-2 rounded-full bg-burgundy px-7 py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('العودة للرئيسية', 'Back to home')}</Link>
+//     </div>
+//   }
+
+//   return <div className="mx-auto max-w-[1200px] px-5 py-10 md:px-10 md:py-14">
+//     <form onSubmit={handleSubmit} className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+//       <div className="space-y-10">
+//         <section>
+//           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('١. بيانات التواصل', '1. Contact information')}</h2>
+//           <div className="mt-4 grid gap-4 sm:grid-cols-2">
+//             <Field label={t('الاسم الكامل', 'Full name')} required value={fullName} onChange={e => setFullName(e.target.value)} className="sm:col-span-2" />
+//             <Field
+//               label={t('رقم الموبايل', 'Phone number')}
+//               type="tel"
+//               required
+//               value={phone}
+//               onChange={e => setPhone(e.target.value)}
+//               inputMode="numeric"
+//               maxLength={11}
+//               pattern="01[0125][0-9]{8}"
+//               title={t('رقم موبايل مصري صحيح، مثال: 01012345678', 'A valid Egyptian phone number, e.g. 01012345678')}
+//               placeholder="01xxxxxxxxx"
+//             />
+//             <Field
+//               label={t('رقم موبايل إضافي (اختياري)', 'Alternative phone (optional)')}
+//               type="tel"
+//               value={altPhone}
+//               onChange={e => setAltPhone(e.target.value)}
+//               inputMode="numeric"
+//               maxLength={11}
+//               pattern="01[0125][0-9]{8}"
+//               title={t('رقم موبايل مصري صحيح، مثال: 01012345678', 'A valid Egyptian phone number, e.g. 01012345678')}
+//               placeholder="01xxxxxxxxx"
+//             />
+//             <Field label={t('البريد الإلكتروني', 'Email')} type="email" required value={email} onChange={e => setEmail(e.target.value)} className="sm:col-span-2" />
+//           </div>
+//           <p className="mt-2.5 text-xs text-muted dark:text-muted-dark">{t('ممكن نتواصل معاك على الرقم ده لتأكيد الطلب قبل الشحن.', 'We may contact you on this number to confirm your order before shipping.')}</p>
+//         </section>
+
+//         <section>
+//           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٢. عنوان الشحن', '2. Shipping address')}</h2>
+
+//           {addresses.length > 0 && (
+//             <div className="mt-4 space-y-2.5">
+//               {addresses.map(address => {
+//                 const gov = governorates.find(g => g.id === address.governorateId)
+//                 const city = gov?.cities.find(c => c.id === address.cityId)
+//                 const cityLabel = city ? city.ar : address.customCity
+//                 return <button
+//                   key={address.id}
+//                   type="button"
+//                   onClick={() => { setSelectedAddressId(address.id); setUseNewAddress(false) }}
+//                   className={cn('flex w-full items-start gap-3 rounded-xl border p-4 text-start transition dark:border-line-dark', !useNewAddress && selectedAddressId === address.id ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line hover:border-burgundy/30')}
+//                 >
+//                   <MapPin size={17} className="mt-0.5 shrink-0 text-burgundy" />
+//                   <span>
+//                     <span className="block text-sm font-medium text-ink dark:text-ink-dark">{address.label}</span>
+//                     <span className="block text-xs text-muted dark:text-muted-dark">{[address.street, address.district, cityLabel, gov?.ar].filter(Boolean).join('، ')}</span>
+//                   </span>
+//                 </button>
+//               })}
+//               <button type="button" onClick={() => setUseNewAddress(true)} className={cn('flex w-full items-center gap-2 rounded-xl border p-4 text-sm transition dark:border-line-dark', useNewAddress ? 'border-burgundy bg-burgundy/[.03] text-burgundy dark:bg-burgundy/10' : 'border-dashed border-line text-muted hover:border-burgundy/30 dark:text-muted-dark')}>
+//                 <Plus size={16} /> {t('عنوان جديد', 'New address')}
+//               </button>
+//             </div>
+//           )}
+
+//           {useNewAddress && (
+//             <div className="mt-4 space-y-4">
+//               <AddressCascadeFields value={location} onChange={setLocation} />
+//               <Field label={t('العنوان بالتفصيل (اسم الشارع ورقم العمارة)', 'Street address (street name & building number)')} required value={street} onChange={e => setStreet(e.target.value)} />
+//               <label className="flex items-center gap-2.5 text-sm text-ink/80 dark:text-ink-dark/80">
+//                 <input type="checkbox" checked={saveNewAddress} onChange={e => setSaveNewAddress(e.target.checked)} className="accent-burgundy" />
+//                 {t('احفظ العنوان ده في "عناويني" لاستخدامه تاني', 'Save this address in "My addresses" for next time')}
+//               </label>
+//             </div>
+//           )}
+//         </section>
+
+
+//         <section>
+//           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٣. طريقة الشحن', '3. Shipping method')}</h2>
+//           {hasMadeToOrder && (
+//             <p className="mt-3 rounded-lg bg-gold/10 px-3 py-2.5 text-xs leading-6 text-ink/80 dark:bg-gold/15 dark:text-ink-dark/80">
+//               {t(`طلبك فيه منتج بيتصنّع خصيصًا لك (${madeToOrderItems.map(l => l.product.name).join('، ')})، فالشحن السريع مش متاح - التوصيل هيبقى خلال ١٠-١٤ يوم، والشحن مجاني.`, `Your order includes a made-to-order item (${madeToOrderItems.map(l => l.product.name).join(', ')}), so express shipping isn't available - delivery will take 10–14 days, and shipping is free.`)}
+//             </p>
+//           )}
+//           <div className="mt-4 space-y-3">
+//             <OptionRow icon={Truck} active={shipping === 'standard' || hasMadeToOrder} onClick={() => setShipping('standard')} title={hasMadeToOrder ? t('شحن بعد التصنيع', 'Shipping after production') : t('شحن عادي', 'Standard shipping')} subtitle={hasMadeToOrder ? t('خلال ١٠ إلى ١٤ يوم عمل', 'Within 10–14 business days') : t('من ٢ إلى ٤ أيام عمل', '2 to 4 business days')} price={hasMadeToOrder || subtotal >= 1000 ? t('مجاني', 'Free') : `60 ${t('جنيه', 'EGP')}`} />
+//             {!hasMadeToOrder && <OptionRow icon={Truck} active={shipping === 'express'} onClick={() => setShipping('express')} title={t('شحن سريع', 'Express shipping')} subtitle={t('خلال ٢٤ ساعة داخل القاهرة والجيزة', 'Within 24 hours in Cairo & Giza')} price={`90 ${t('جنيه', 'EGP')}`} />}
+//           </div>
+//         </section>
+
+//         <section>
+//           <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('٤. طريقة الدفع', '4. Payment method')}</h2>
+//           <div className="mt-4 space-y-3">
+//             <OptionRow icon={CreditCard} active={payment === 'cod'} onClick={() => setPayment('cod')} title={t('الدفع عند الاستلام', 'Cash on delivery')} subtitle={t('ادفع نقدًا لما طلبك يوصلك', 'Pay in cash when your order arrives')} />
+//             <OptionRow icon={CreditCard} active={payment === 'card'} onClick={() => setPayment('card')} title={t('بطاقة ائتمان', 'Credit card')} subtitle={t('فيزا أو ماستركارد', 'Visa or Mastercard')} />
+//             {payment === 'card' && <div className="grid gap-4 rounded-xl border border-line p-4 dark:border-line-dark sm:grid-cols-2">
+//               <Field label={t('رقم البطاقة', 'Card number')} required className="sm:col-span-2" />
+//               <Field label={t('تاريخ الانتهاء', 'Expiry date')} required />
+//               <Field label="CVC" required />
+//             </div>}
+//           </div>
+//         </section>
+//       </div>
+
+//       <aside className="h-fit rounded-2xl border border-line bg-paper p-6 dark:border-line-dark dark:bg-paper-dark lg:sticky lg:top-24">
+//         <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('ملخص الطلب', 'Order summary')}</h2>
+//         <div className="mt-4 space-y-3 border-b border-line pb-4 dark:border-line-dark">
+//           {lines.map(line => <div key={line.productId} className="flex items-center gap-3 text-sm">
+//             <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-cream dark:bg-cream-dark">
+//               <img src={line.product.image} alt="" className="size-full object-cover" />
+//               <span className="absolute -left-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-burgundy text-[10px] font-bold text-cream">{line.quantity}</span>
+//             </div>
+//             <span className="flex-1 text-ink/80 dark:text-ink-dark/80">{line.product.name}</span>
+//             <span className="text-ink dark:text-ink-dark">{line.product.price * line.quantity} {t('جنيه', 'EGP')}</span>
+//           </div>)}
+//         </div>
+//         <div className="mt-4 space-y-2.5 text-sm">
+//           <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('المجموع الفرعي', 'Subtotal')}</span><span>{formatPrice(subtotal)} {t('جنيه', 'EGP')}</span></div>
+//           {couponCode && <div className="flex justify-between text-burgundy"><span>{t(`خصم (${couponCode})`, `Discount (${couponCode})`)}</span><span>-{formatPrice(discountAmount)} {t('جنيه', 'EGP')}</span></div>}
+//           <div className="flex justify-between text-ink/80 dark:text-ink-dark/80"><span>{t('الشحن', 'Shipping')}</span><span>{formatPrice(shippingCost === 0 ? 0 : shippingCost)} {t('جنيه', 'EGP')}</span></div>
+//         </div>
+//         <div className="mt-4 flex justify-between border-t border-line pt-4 text-base font-semibold text-ink dark:border-line-dark dark:text-ink-dark">
+//           <span>{t('الإجمالي', 'Total')}</span><span>{formatPrice(total)} {t('جنيه', 'EGP')}</span>
+//         </div>
+//         <button type="submit" className="mt-6 w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('تأكيد الطلب', 'Place order')}</button>
+//       </aside>
+//     </form>
+//   </div>
+// }
+
+// function Field({ label, className, ...props }: { label: string; className?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+//   return <label className={cn('block text-sm', className)}>
+//     <span className="mb-1.5 block text-ink/80 dark:text-ink-dark/80">{label}</span>
+//     <input {...props} className="w-full rounded-lg border border-line bg-cream px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-burgundy dark:border-line-dark dark:bg-cream-dark dark:text-ink-dark" />
+//   </label>
+// }
+
+// function OptionRow({ icon: Icon, active, onClick, title, subtitle, price }: { icon: typeof Truck; active: boolean; onClick: () => void; title: string; subtitle: string; price?: string }) {
+//   return <button type="button" onClick={onClick} className={cn('flex w-full items-center gap-3 rounded-xl border p-4 text-start transition dark:border-line-dark', active ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line hover:border-burgundy/30')}>
+//     <span className={cn('grid size-9 shrink-0 place-items-center rounded-full', active ? 'bg-burgundy text-cream' : 'bg-cream text-ink dark:bg-cream-dark dark:text-ink-dark')}><Icon size={16} /></span>
+//     <span className="flex-1">
+//       <span className="block text-sm font-medium text-ink dark:text-ink-dark">{title}</span>
+//       <span className="block text-xs text-muted dark:text-muted-dark">{subtitle}</span>
+//     </span>
+//     {price && <span className="text-sm font-medium text-ink dark:text-ink-dark">{price}</span>}
+//   </button>
+// }

@@ -21,7 +21,7 @@ type NewOrder = Omit<Order, 'id' | 'date' | 'status'>
 
 interface OrdersContextType {
   orders: Order[]
-  addOrder: (order: NewOrder) => string
+  addOrder: (order: NewOrder, idOverride?: string) => string
   updateStatus: (orderId: string, status: OrderStatus) => void
 }
 
@@ -34,8 +34,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { localStorage.setItem('rafiq-orders', JSON.stringify(orders)) }, [orders])
 
-  const addOrder: OrdersContextType['addOrder'] = (order) => {
-    const id = `RFQ-${Math.floor(100000 + Math.random() * 900000)}`
+  const addOrder: OrdersContextType['addOrder'] = (order, idOverride) => {
+    const id = idOverride ?? `RFQ-${Math.floor(100000 + Math.random() * 900000)}`
     setOrders(prev => [{ ...order, id, date: new Date().toISOString(), status: 'received' }, ...prev])
     return id
   }

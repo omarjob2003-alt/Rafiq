@@ -11,8 +11,8 @@ import { cn } from '../../lib/cn'
 import { Logo } from '../ui/Logo'
 import { SearchOverlay } from './SearchOverlay'
 import { MobileMenu } from './MobileMenu'
-import { useOrders } from '../../context/OrdersContext'
-import { useOrderStatusUpdates } from '../../hooks/useOrderStatusUpdates'
+// import { useOrders } from '../../context/OrdersContext'
+// import { useOrderStatusUpdates } from '../../hooks/useOrderStatusUpdates'
 
 const navigation = {
   ar: [
@@ -34,9 +34,9 @@ const navigation = {
 export function Header() {
   const { productIds } = useWishlist()
   const { user } = useAuth()
-  const { orders } = useOrders()
-  const myOrders = orders.filter(order => order.userEmail === user?.email)
-  const { unseenCount } = useOrderStatusUpdates(myOrders)
+//  const { orders } = useOrders()
+//  const myOrders = orders.filter(order => order.userEmail === user?.email)
+//  const { unseenCount } = useOrderStatusUpdates(myOrders)
   const [searchOpen, setSearchOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const scrolled = useScrolled(14)
@@ -75,7 +75,7 @@ export function Header() {
             </Link>
             <Link to={user ? '/account' : '/login'} aria-label={t('حسابي', 'Account')} className="relative hidden size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75 md:inline-flex">
               <User size={18} />
-              {unseenCount > 0 && <span className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-burgundy" />}
+              {/* {unseenCount > 0 && <span className="absolute -left-0.5 -top-0.5 size-2.5 rounded-full bg-burgundy" />} */}
             </Link>            <button onClick={openDrawer} aria-label={t('السلة', 'Cart')} className="relative inline-flex size-9 items-center justify-center rounded-full text-ink/75 transition hover:bg-burgundy/5 hover:text-burgundy dark:text-ink-dark/75">
               <ShoppingBag size={19} />
               {itemCount > 0 && <span className="absolute -left-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-burgundy-dark">{itemCount}</span>}

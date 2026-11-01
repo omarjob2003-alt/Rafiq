@@ -1,8 +1,9 @@
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, History, RotateCcw, Star, MessageCircleQuestion, Receipt, Users, Mail } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, History, RotateCcw, Star, MessageCircleQuestion, Receipt, Users, Mail, ShoppingCart } from 'lucide-react'
 
 export type PermissionKey =
   | 'overview' | 'orders' | 'products' | 'categories' | 'stockLog'
   | 'returns' | 'reviews' | 'questions' | 'expenses' | 'subscribers' | 'messages'
+  | 'abandonedCarts'
 
 export interface AdminSection {
   id: PermissionKey
@@ -18,6 +19,7 @@ export interface AdminSection {
 export const adminSections: AdminSection[] = [
   { id: 'overview', href: '/admin', icon: LayoutDashboard, ar: 'نظرة عامة', en: 'Overview' },
   { id: 'orders', href: '/admin/orders', icon: ShoppingBag, ar: 'الطلبات', en: 'Orders' },
+  { id: 'abandonedCarts', href: '/admin/abandoned-carts', icon: ShoppingCart, ar: 'سلال متروكة', en: 'Abandoned carts' },
   { id: 'products', href: '/admin/products', icon: Package, ar: 'المنتجات', en: 'Products' },
   { id: 'categories', href: '/admin/categories', icon: FolderTree, ar: 'الفئات', en: 'Categories' },
   { id: 'stockLog', href: '/admin/stock-log', icon: History, ar: 'سجل المخزون', en: 'Stock log' },

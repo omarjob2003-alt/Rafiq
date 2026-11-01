@@ -11,13 +11,19 @@ export function Account() {
   const [name, setName] = useState(user?.name ?? '')
   const [saved, setSaved] = useState(false)
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    updateProfile(name)
+const [saveError, setSaveError] = useState('')
+
+const handleSubmit = async (event: FormEvent) => {
+  event.preventDefault()
+  setSaveError('')
+  const result = await updateProfile(name)
+  if (result.success) {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  } else {
+    setSaveError(result.error ?? '')
   }
-
+}
   return <AccountLayout>
     <div className="rounded-2xl border border-line p-6 dark:border-line-dark md:p-8">
       <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('البيانات الشخصية', 'Personal information')}</h2>
@@ -33,5 +39,6 @@ export function Account() {
         <button type="submit" className="rounded-lg bg-burgundy px-6 py-3 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{saved ? t('تم الحفظ ✓', 'Saved ✓') : t('حفظ التعديلات', 'Save changes')}</button>
       </form>
     </div>
+    {saveError && <p className="mt-2 text-sm text-burgundy">{saveError}</p>}
   </AccountLayout>
 }

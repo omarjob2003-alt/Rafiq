@@ -18,6 +18,10 @@ export interface Product {
   stockMode: StockMode;
   /** Legacy persisted value; new availability is calculated from stockMode and stock. */
   availability?: ProductAvailability;
+
+  isBestSeller?: boolean;
+  averageRating?: number;
+  reviewCount?: number;
 }
 export interface Collection {
   id: string;

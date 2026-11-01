@@ -31,11 +31,18 @@ export function Cart() {
   const freeShippingThreshold = 1000
   const remaining = Math.max(0, freeShippingThreshold - subtotal)
 
-  const handleApplyCoupon = () => {
-    const success = applyCoupon(couponInput)
+
+  const handleApplyCoupon = async () => {
+    const success = await applyCoupon(couponInput)
     if (!success) setCouponError(t('الكوبون ده مش صحيح.', 'This coupon is not valid.'))
     else { setCouponError(''); setCouponInput('') }
   }
+
+  // const handleApplyCoupon = () => {
+  //   const success = applyCoupon(couponInput)
+  //   if (!success) setCouponError(t('الكوبون ده مش صحيح.', 'This coupon is not valid.'))
+  //   else { setCouponError(''); setCouponInput('') }
+  // }
 
   if (lines.length === 0) {
     return <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 pt-[108px] text-center">

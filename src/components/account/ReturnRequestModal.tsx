@@ -5,11 +5,16 @@ import { useLocalized } from '../../hooks/useLocalized'
 import { useAuth } from '../../context/AuthContext'
 import { addReturnRequest, type ReturnType } from '../../lib/returns'
 import { products } from '../../data/products'
-import type { Order } from '../../context/OrdersContext'
+// import type { Order } from '../../context/OrdersContext'
 import { cn } from '../../lib/cn'
 
+export interface ReturnableOrder {
+  id: string
+  lines: { productId: string; quantity: number }[]
+}
+
 interface ReturnRequestModalProps {
-  order: Order | null
+  order: ReturnableOrder | null
   onClose: () => void
   onSubmitted: () => void
 }

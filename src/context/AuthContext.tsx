@@ -1,57 +1,99 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { api, ApiError, setToken, clearToken, getToken } from '../lib/apiClient'
 
-interface StoredUser { name: string; email: string; password: string }
-interface SessionUser { name: string; email: string }
+export interface AuthUser {
+  name: string
+  email: string
+}
+
+interface AuthResult {
+  success: boolean
+  error?: string
+}
+
+interface AuthResponse {
+  token: string
+}
 
 interface AuthContextType {
-  user: SessionUser | null
-  login: (email: string, password: string) => { success: boolean; error?: string }
-  register: (name: string, email: string, password: string) => { success: boolean; error?: string }
+  user: AuthUser | null
+  isReady: boolean
+  login: (email: string, password: string) => Promise<AuthResult>
+  register: (name: string, email: string, password: string) => Promise<AuthResult>
   logout: () => void
-  updateProfile: (name: string) => void
+  updateProfile: (name: string) => Promise<AuthResult>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function getUsers(): StoredUser[] {
-  try { return JSON.parse(localStorage.getItem('rafiq-users') ?? '[]') } catch { return [] }
-}
-function saveUsers(users: StoredUser[]) { localStorage.setItem('rafiq-users', JSON.stringify(users)) }
+const GENERIC_ERROR = 'حصل خطأ غير متوقع، حاول تاني.'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(() => {
-    try { return JSON.parse(localStorage.getItem('rafiq-session') ?? 'null') } catch { return null }
-  })
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    if (user) localStorage.setItem('rafiq-session', JSON.stringify(user))
-    else localStorage.removeItem('rafiq-session')
-  }, [user])
+    const bootstrap = async () => {
+      if (!getToken()) { setIsReady(true); return }
+      try {
+        const me = await api.get<AuthUser>('/auth/me')
+        setUser(me)
+      } catch {
+        clearToken()
+        setUser(null)
+      } finally {
+        setIsReady(true)
+      }
+    }
+    bootstrap()
+  }, [])
 
-  const login: AuthContextType['login'] = (email, password) => {
-    const match = getUsers().find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password)
-    if (!match) return { success: false, error: 'wrong-credentials' }
-    setUser({ name: match.name, email: match.email })
-    return { success: true }
+  useEffect(() => {
+    const handler = () => setUser(null)
+    window.addEventListener('rafiq:unauthorized', handler)
+    return () => window.removeEventListener('rafiq:unauthorized', handler)
+  }, [])
+
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    try {
+      const result = await api.post<AuthResponse>('/auth/login', { email, password }, false)
+      setToken(result.token)
+      const me = await api.get<AuthUser>('/auth/me')
+      setUser(me)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof ApiError ? error.message : GENERIC_ERROR }
+    }
   }
 
-  const register: AuthContextType['register'] = (name, email, password) => {
-    const users = getUsers()
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) return { success: false, error: 'email-taken' }
-    const newUser = { name, email, password }
-    saveUsers([...users, newUser])
-    setUser({ name, email })
-    return { success: true }
+  const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
+    try {
+      const result = await api.post<AuthResponse>('/auth/register', { name, email, password }, false)
+      setToken(result.token)
+      const me = await api.get<AuthUser>('/auth/me')
+      setUser(me)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof ApiError ? error.message : GENERIC_ERROR }
+    }
   }
 
-  const logout = () => setUser(null)
-  const updateProfile = (name: string) => {
-    if (!user) return
-    setUser({ ...user, name })
-    saveUsers(getUsers().map(u => u.email === user.email ? { ...u, name } : u))
+  const logout = () => {
+    clearToken()
+    setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout, updateProfile }}>{children}</AuthContext.Provider>
+  const updateProfile = async (name: string): Promise<AuthResult> => {
+    try {
+      await api.put('/auth/profile', { name })
+      setUser(prev => (prev ? { ...prev, name } : prev))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof ApiError ? error.message : GENERIC_ERROR }
+    }
+  }
+
+  return <AuthContext.Provider value={{ user, isReady, login, register, logout, updateProfile }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

@@ -11,6 +11,7 @@ import { OrdersProvider } from './context/OrdersContext'
 import { AddressBookProvider } from './context/AddressBookContext'
 import { AdminProvider } from './context/AdminContext'
 import { QuickViewProvider } from './context/QuickViewContext'
+import { CatalogProvider } from './context/CatalogContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -18,17 +19,19 @@ createRoot(document.getElementById('root')!).render(
       <LanguageProvider>
         <AuthProvider>
           <AdminProvider>
-          <AddressBookProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <OrdersProvider>
-                <QuickViewProvider>
-                <App />
-                </QuickViewProvider>
-              </OrdersProvider>
-            </WishlistProvider>
-          </CartProvider>
-          </AddressBookProvider>
+            <AddressBookProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <OrdersProvider>
+                    <QuickViewProvider>
+                      <CatalogProvider>
+                        <App />
+                      </CatalogProvider>
+                    </QuickViewProvider>
+                  </OrdersProvider>
+                </WishlistProvider>
+              </CartProvider>
+            </AddressBookProvider>
           </AdminProvider>
         </AuthProvider>
       </LanguageProvider>

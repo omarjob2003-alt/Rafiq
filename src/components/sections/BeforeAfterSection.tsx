@@ -4,9 +4,9 @@ import { MoveHorizontal } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
 
 const BEFORE_IMG =
-  "https://images.unsplash.com/photo-1587613864411-cee1fda9c169?w=1400&q=80&auto=format&fit=crop";
+  "https://grovemade.com/cdn-cgi/image/format=auto,quality=10/https://grovemade.com/shop-static/shop/variant/grovemade-desk-shelf-walnut-galA-B1_N6EIvuV.jpg?_v=1635183066.0106382";
 const AFTER_IMG =
-  "https://images.unsplash.com/photo-1517705008128-361805f42e86?w=1400&q=80&auto=format&fit=crop";
+  "https://grovemade.com/cdn-cgi/image/format=auto,width=900/https://grovemade.com/shop-static/shop/variant/grovemade-desk-shelf-walnut-galA-A1_q1aiQTy.jpg?_v=1635183066.017305";
 
 export function BeforeAfterSection() {
   const containerRef = useRef<HTMLDivElement>(null);

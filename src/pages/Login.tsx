@@ -2,26 +2,28 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLocalized } from '../hooks/useLocalized'
-import { usePageTitle } from '../hooks/usePageTitle'
 
 export function Login() {
   const { login } = useAuth()
   const { t } = useLocalized()
-  usePageTitle(t('تسجيل الدخول', 'Sign in'))
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const result = login(email, password)
+    setError('')
+    setLoading(true)
+    const result = await login(email, password)
+    setLoading(false)
     if (result.success) {
       const redirectTo = (location.state as { from?: string })?.from ?? '/account'
       navigate(redirectTo, { replace: true })
     } else {
-      setError(t('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'Incorrect email or password.'))
+      setError(result.error ?? t('البريد الإلكتروني أو كلمة المرور غير صحيحة.', 'Incorrect email or password.'))
     }
   }
 
@@ -42,7 +44,9 @@ export function Login() {
 
         {error && <p className="text-sm text-burgundy">{error}</p>}
 
-        <button type="submit" className="w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark">{t('دخول', 'Sign in')}</button>
+        <button type="submit" disabled={loading} className="w-full rounded-lg bg-burgundy py-3.5 text-sm font-semibold text-cream transition hover:bg-burgundy-dark disabled:cursor-not-allowed disabled:opacity-60">
+          {loading ? t('جاري الدخول...', 'Signing in...') : t('دخول', 'Sign in')}
+        </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted dark:text-muted-dark">

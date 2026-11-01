@@ -1,84 +1,212 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package } from 'lucide-react'
-import { useOrders } from '../context/OrdersContext'
-import { useLocalized } from '../hooks/useLocalized'
-import { AccountLayout } from '../components/account/AccountLayout'
-import { products } from '../data/products'
-import { usePageTitle } from '../hooks/usePageTitle'
-import { orderStatuses } from '../data/orderStatuses'
+import { Package, RotateCcw } from 'lucide-react'
+import { api } from '../lib/apiClient'
 import { useAuth } from '../context/AuthContext'
-import { useState, useEffect } from 'react'
-import { useOrderStatusUpdates } from '../hooks/useOrderStatusUpdates'
-import { formatPrice } from '../lib/formatPrice'
-import { RotateCcw } from 'lucide-react'
-import { ReturnRequestModal } from '../components/account/ReturnRequestModal'
-import { getUserReturnRequests, hasReturnRequest } from '../lib/returns'
+import { useLocalized } from '../hooks/useLocalized'
+import { usePageTitle } from '../hooks/usePageTitle'
+import { AccountLayout } from '../components/account/AccountLayout'
+import { ReturnRequestModal, type ReturnableOrder } from '../components/account/ReturnRequestModal'
+import { orderStatuses } from '../data/orderStatuses'
 import { returnStatusLabels } from '../data/returnStatuses'
+import { getUserReturnRequests, hasReturnRequest } from '../lib/returns'
+import { formatPrice } from '../lib/formatPrice'
+import { parseServerDate } from '../lib/serverDate'
+import type { OrderDto, TrackDto } from '../lib/ordersApi'
+
+type OrderRow = OrderDto & { stepIndex: number }
 
 export function AccountOrders() {
-    const { orders: allOrders } = useOrders()
-    const { user } = useAuth()
-    const orders = allOrders.filter(order => order.userEmail === user?.email)
-    const { updatedOrderIds, markAllSeen } = useOrderStatusUpdates(orders)
-    const [highlightedIds] = useState(updatedOrderIds)
-    const [returnOrder, setReturnOrder] = useState<typeof orders[number] | null>(null)
-    const [, forceRerender] = useState(0)
-    const myReturnRequests = user ? getUserReturnRequests(user.email) : []
+  const { user } = useAuth()
+  const { t, isArabic } = useLocalized()
+  usePageTitle(t('طلباتي', 'My orders'))
 
-    useEffect(() => { markAllSeen() }, [])
-    const { t, isArabic } = useLocalized()
-    usePageTitle(t('طلباتي', 'My orders'))
+  const [orders, setOrders] = useState<OrderRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
+  const [returnOrder, setReturnOrder] = useState<ReturnableOrder | null>(null)
+  const [, forceRerender] = useState(0)
 
-    return <AccountLayout>
-        <div className="rounded-2xl border border-line p-6 dark:border-line-dark md:p-8">
-            <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('طلباتي', 'My orders')}</h2>
-            {orders.length === 0
-                ? <div className="mt-8 flex flex-col items-center gap-4 py-8 text-center">
-                    <span className="grid size-14 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><Package size={22} /></span>
-                    <p className="text-sm text-muted dark:text-muted-dark">{t('لسه معملتش أي طلب.', "You haven't placed any orders yet.")}</p>
-                    <Link to="/shop" className="rounded-full bg-burgundy px-6 py-2.5 text-sm font-semibold text-cream">{t('تسوق الآن', 'Shop now')}</Link>
-                </div>
-                : <div className="mt-6 space-y-4">
-                    {orders.map(order => <div key={order.id} className={`rounded-xl border p-4 dark:border-line-dark ${highlightedIds.includes(order.id) ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line'}`}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
-                                {highlightedIds.includes(order.id) && <span className="rounded-full bg-burgundy px-2 py-0.5 text-[10px] font-medium text-cream">{t('تحديث جديد', 'Updated')}</span>}
-                            </div>
-                            <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{isArabic ? orderStatuses.find(s => s.id === order.status)?.ar : orderStatuses.find(s => s.id === order.status)?.en}</span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted dark:text-muted-dark">{new Date(order.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {order.lines.map(line => {
-                                const product = products.find(p => p.id === line.productId)
-                                return product ? <img key={line.productId} src={product.image} alt="" className="size-12 rounded-lg object-cover" /> : null
-                            })}
-                        </div>
-                        <div className="mt-3 flex items-center justify-between">
-                            <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
-                            <Link to={`/track-order?order=${order.id}`} className="text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">{t('تتبع الطلب', 'Track order')}</Link>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {order.lines.map(line => {
-                                    const requested = hasReturnRequest(order.id, line.productId)
-                                    const request = myReturnRequests.find(r => r.orderId === order.id && r.productId === line.productId)
-                                    if (requested && request) {
-                                        const info = returnStatusLabels[request.status]
-                                        return <span key={line.productId} className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${info.tone === 'burgundy' ? 'bg-burgundy/10 text-burgundy' : info.tone === 'gold' ? 'bg-gold/20 text-burgundy' : 'bg-line text-muted dark:bg-line-dark dark:text-muted-dark'}`}>
-                                            {t(request.type === 'exchange' ? 'استبدال' : 'إرجاع', request.type === 'exchange' ? 'Exchange' : 'Return')}: {isArabic ? info.ar : info.en}
-                                        </span>
-                                    }
-                                    return null
-                                })}
-                            </div>
-                            {orderStatuses.find(s => s.id === order.status)?.id === 'delivered' && (
-                                <button onClick={() => setReturnOrder(order)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">
-                                    <RotateCcw size={13} /> {t('طلب استبدال أو إرجاع', 'Request return/exchange')}
-                                </button>
-                            )}
-                        </div>
-                    </div>)}
-                </div>}
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const list = await api.get<OrderDto[]>('/orders')
+        // الحالة بتيجي من endpoint التتبع (بيرجّع رقم المرحلة 0-4)
+        const steps = await Promise.all(
+          list.map(order => api.get<TrackDto>(`/orders/track/${order.orderNumber}`, false).then(track => track.currentStepIndex).catch(() => 0))
+        )
+        if (cancelled) return
+        const rows = list.map((order, index) => ({ ...order, stepIndex: steps[index] }))
+        rows.sort((a, b) => parseServerDate(b.createdAt).getTime() - parseServerDate(a.createdAt).getTime())
+        setOrders(rows)
+      } catch {
+        if (!cancelled) setFailed(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [])
+
+  const myReturnRequests = user ? getUserReturnRequests(user.email) : []
+
+  return <AccountLayout>
+    <div className="rounded-2xl border border-line p-6 dark:border-line-dark md:p-8">
+      <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('طلباتي', 'My orders')}</h2>
+
+      {loading && <p className="mt-6 animate-pulse text-sm text-muted dark:text-muted-dark">{t('جاري تحميل طلباتك...', 'Loading your orders...')}</p>}
+      {failed && <p className="mt-6 text-sm text-burgundy">{t('تعذر تحميل الطلبات، حاول تاني بعد شوية.', "Couldn't load your orders. Please try again shortly.")}</p>}
+
+      {!loading && !failed && orders.length === 0 && (
+        <div className="mt-8 flex flex-col items-center gap-4 py-8 text-center">
+          <span className="grid size-14 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><Package size={22} /></span>
+          <p className="text-sm text-muted dark:text-muted-dark">{t('لسه معملتش أي طلب.', "You haven't placed any orders yet.")}</p>
+          <Link to="/shop" className="rounded-full bg-burgundy px-6 py-2.5 text-sm font-semibold text-cream">{t('تسوق الآن', 'Shop now')}</Link>
         </div>
-        <ReturnRequestModal order={returnOrder} onClose={() => setReturnOrder(null)} onSubmitted={() => forceRerender(v => v + 1)} />
-    </AccountLayout>
+      )}
+
+      {orders.length > 0 && (
+        <div className="mt-6 space-y-4">
+          {orders.map(order => {
+            const status = orderStatuses[Math.min(order.stepIndex, orderStatuses.length - 1)]
+            const delivered = order.stepIndex >= orderStatuses.length - 1
+            return <div key={order.orderNumber} className="rounded-xl border border-line p-4 dark:border-line-dark">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium text-ink dark:text-ink-dark">{order.orderNumber}</p>
+                <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{isArabic ? status.ar : status.en}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted dark:text-muted-dark">{parseServerDate(order.createdAt).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {order.items.map(item => (
+                  <img key={item.productId} src={item.productImageUrl} alt={isArabic ? item.productNameAr : item.productNameEn ?? item.productNameAr} title={`${isArabic ? item.productNameAr : item.productNameEn ?? item.productNameAr} × ${item.quantity}`} className="size-12 rounded-lg object-cover" />
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
+                <Link to={`/track-order?order=${order.orderNumber}`} className="text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">{t('تتبع الطلب', 'Track order')}</Link>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {order.items.map(item => {
+                  const request = myReturnRequests.find(r => r.orderId === order.orderNumber && r.productId === item.productId)
+                  if (!request || !hasReturnRequest(order.orderNumber, item.productId)) return null
+                  const info = returnStatusLabels[request.status]
+                  return <span key={item.productId} className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${info.tone === 'burgundy' ? 'bg-burgundy/10 text-burgundy' : info.tone === 'gold' ? 'bg-gold/20 text-burgundy' : 'bg-line text-muted dark:bg-line-dark dark:text-muted-dark'}`}>
+                    {t(request.type === 'exchange' ? 'استبدال' : 'إرجاع', request.type === 'exchange' ? 'Exchange' : 'Return')}: {isArabic ? info.ar : info.en}
+                  </span>
+                })}
+              </div>
+
+              {delivered && (
+                <button onClick={() => setReturnOrder({ id: order.orderNumber, lines: order.items.map(item => ({ productId: item.productId, quantity: item.quantity })) })} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">
+                  <RotateCcw size={13} /> {t('طلب استبدال أو إرجاع', 'Request return/exchange')}
+                </button>
+              )}
+            </div>
+          })}
+        </div>
+      )}
+    </div>
+    <ReturnRequestModal order={returnOrder} onClose={() => setReturnOrder(null)} onSubmitted={() => forceRerender(v => v + 1)} />
+  </AccountLayout>
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// import { Link } from 'react-router-dom'
+// import { Package } from 'lucide-react'
+// import { useOrders } from '../context/OrdersContext'
+// import { useLocalized } from '../hooks/useLocalized'
+// import { AccountLayout } from '../components/account/AccountLayout'
+// import { products } from '../data/products'
+// import { usePageTitle } from '../hooks/usePageTitle'
+// import { orderStatuses } from '../data/orderStatuses'
+// import { useAuth } from '../context/AuthContext'
+// import { useState, useEffect } from 'react'
+// import { useOrderStatusUpdates } from '../hooks/useOrderStatusUpdates'
+// import { formatPrice } from '../lib/formatPrice'
+// import { RotateCcw } from 'lucide-react'
+// import { ReturnRequestModal } from '../components/account/ReturnRequestModal'
+// import { getUserReturnRequests, hasReturnRequest } from '../lib/returns'
+// import { returnStatusLabels } from '../data/returnStatuses'
+
+// export function AccountOrders() {
+//     const { orders: allOrders } = useOrders()
+//     const { user } = useAuth()
+//     const orders = allOrders.filter(order => order.userEmail === user?.email)
+//     const { updatedOrderIds, markAllSeen } = useOrderStatusUpdates(orders)
+//     const [highlightedIds] = useState(updatedOrderIds)
+//     const [returnOrder, setReturnOrder] = useState<typeof orders[number] | null>(null)
+//     const [, forceRerender] = useState(0)
+//     const myReturnRequests = user ? getUserReturnRequests(user.email) : []
+
+//     useEffect(() => { markAllSeen() }, [])
+//     const { t, isArabic } = useLocalized()
+//     usePageTitle(t('طلباتي', 'My orders'))
+
+//     return <AccountLayout>
+//         <div className="rounded-2xl border border-line p-6 dark:border-line-dark md:p-8">
+//             <h2 className="font-ar-heading text-lg font-semibold text-ink dark:text-ink-dark">{t('طلباتي', 'My orders')}</h2>
+//             {orders.length === 0
+//                 ? <div className="mt-8 flex flex-col items-center gap-4 py-8 text-center">
+//                     <span className="grid size-14 place-items-center rounded-full bg-burgundy/[.06] text-burgundy dark:bg-burgundy/15"><Package size={22} /></span>
+//                     <p className="text-sm text-muted dark:text-muted-dark">{t('لسه معملتش أي طلب.', "You haven't placed any orders yet.")}</p>
+//                     <Link to="/shop" className="rounded-full bg-burgundy px-6 py-2.5 text-sm font-semibold text-cream">{t('تسوق الآن', 'Shop now')}</Link>
+//                 </div>
+//                 : <div className="mt-6 space-y-4">
+//                     {orders.map(order => <div key={order.id} className={`rounded-xl border p-4 dark:border-line-dark ${highlightedIds.includes(order.id) ? 'border-burgundy bg-burgundy/[.03] dark:bg-burgundy/10' : 'border-line'}`}>
+//                         <div className="flex flex-wrap items-center justify-between gap-2">
+//                             <div className="flex items-center gap-2">
+//                                 <p className="font-medium text-ink dark:text-ink-dark">{order.id}</p>
+//                                 {highlightedIds.includes(order.id) && <span className="rounded-full bg-burgundy px-2 py-0.5 text-[10px] font-medium text-cream">{t('تحديث جديد', 'Updated')}</span>}
+//                             </div>
+//                             <span className="rounded-full bg-gold/20 px-3 py-1 text-xs font-medium text-burgundy">{isArabic ? orderStatuses.find(s => s.id === order.status)?.ar : orderStatuses.find(s => s.id === order.status)?.en}</span>
+//                         </div>
+//                         <p className="mt-1 text-xs text-muted dark:text-muted-dark">{new Date(order.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-GB')}</p>
+//                         <div className="mt-3 flex flex-wrap gap-2">
+//                             {order.lines.map(line => {
+//                                 const product = products.find(p => p.id === line.productId)
+//                                 return product ? <img key={line.productId} src={product.image} alt="" className="size-12 rounded-lg object-cover" /> : null
+//                             })}
+//                         </div>
+//                         <div className="mt-3 flex items-center justify-between">
+//                             <p className="text-sm font-semibold text-burgundy">{formatPrice(order.total)} {t('جنيه', 'EGP')}</p>
+//                             <Link to={`/track-order?order=${order.id}`} className="text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">{t('تتبع الطلب', 'Track order')}</Link>
+//                             <div className="mt-3 flex flex-wrap gap-2">
+//                                 {order.lines.map(line => {
+//                                     const requested = hasReturnRequest(order.id, line.productId)
+//                                     const request = myReturnRequests.find(r => r.orderId === order.id && r.productId === line.productId)
+//                                     if (requested && request) {
+//                                         const info = returnStatusLabels[request.status]
+//                                         return <span key={line.productId} className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${info.tone === 'burgundy' ? 'bg-burgundy/10 text-burgundy' : info.tone === 'gold' ? 'bg-gold/20 text-burgundy' : 'bg-line text-muted dark:bg-line-dark dark:text-muted-dark'}`}>
+//                                             {t(request.type === 'exchange' ? 'استبدال' : 'إرجاع', request.type === 'exchange' ? 'Exchange' : 'Return')}: {isArabic ? info.ar : info.en}
+//                                         </span>
+//                                     }
+//                                     return null
+//                                 })}
+//                             </div>
+//                             {orderStatuses.find(s => s.id === order.status)?.id === 'delivered' && (
+//                                 <button onClick={() => setReturnOrder(order)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink underline underline-offset-4 hover:text-burgundy dark:text-ink-dark">
+//                                     <RotateCcw size={13} /> {t('طلب استبدال أو إرجاع', 'Request return/exchange')}
+//                                 </button>
+//                             )}
+//                         </div>
+//                     </div>)}
+//                 </div>}
+//         </div>
+//         <ReturnRequestModal order={returnOrder} onClose={() => setReturnOrder(null)} onSubmitted={() => forceRerender(v => v + 1)} />
+//     </AccountLayout>
+// }
