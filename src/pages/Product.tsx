@@ -104,7 +104,7 @@ export function Product() {
     setServerReviews([])
     api.get<ServerReviewDto[]>(`/products/${product.id}/reviews`, false)
       .then(list => { if (!cancelled) setServerReviews(list) })
-      .catch(() => { /* نكمل بالتقييمات المحلية بس */ })
+      .catch(() => { /* نكمل بالتقييمات المحلية بس 1*/ })
     return () => { cancelled = true }
   }, [product.id])
 
