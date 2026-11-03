@@ -1,4 +1,4 @@
-import { /*useEffect,*/ useRef, useState } from 'react'
+import { /*useEffect,*/ useEffect, useRef, useState } from 'react'
 import { Link, useParams } from "react-router-dom";
 import { Check, ChevronLeft, Heart, Minus, Plus, ShoppingBag, Truck, Undo2, ZoomIn, MessageCircleQuestion } from "lucide-react";
 import { ProductCard } from "../components/products/ProductCard";
@@ -17,7 +17,9 @@ import { MobileStickyBuyBar } from '../components/products/MobileStickyBuyBar'
 import { ImageLightbox } from '../components/ui/ImageLightbox'
 import { collections } from '../data/collections'
 import { availabilityLabels, getEffectiveAvailability, isPurchasable, isMadeToOrder, getMaxOrderQuantity } from '../data/availability'
-import { getProductRatingSummary, getApprovedReviews } from '../lib/reviews'
+import { getApprovedReviews } from '../lib/reviews'
+import { api } from '../lib/apiClient'
+import { parseServerDate } from '../lib/serverDate'
 import { ReviewForm } from '../components/products/ReviewForm'
 import { getAnsweredQuestions } from '../lib/questions'
 import { QuestionForm } from '../components/products/QuestionForm'
@@ -59,6 +61,24 @@ const specs = [
   { ar: ["التركيب", "يثبّت على الحائط بسهولة"], en: ["Installation", "Easy wall mounting"] },
 ];
 
+interface ServerReviewDto {
+  id: number
+  reviewerNameAr: string
+  reviewerNameEn: string | null
+  rating: number
+  commentAr: string
+  commentEn: string | null
+  createdAt: string
+}
+
+interface DisplayReview {
+  id: string
+  userName: string
+  rating: number
+  comment: string
+  date: string
+}
+
 export function Product() {
   const { addItem } = useCart();
   const { user } = useAuth();
@@ -78,8 +98,31 @@ export function Product() {
 
   const tabsSectionRef = useRef<HTMLDivElement>(null)
   const [, forceRerender] = useState(0)
-  const rating = getProductRatingSummary(product.id)
-  const reviews = getApprovedReviews(product.id)
+  const [serverReviews, setServerReviews] = useState<ServerReviewDto[]>([])
+  useEffect(() => {
+    let cancelled = false
+    setServerReviews([])
+    api.get<ServerReviewDto[]>(`/products/${product.id}/reviews`, false)
+      .then(list => { if (!cancelled) setServerReviews(list) })
+      .catch(() => { /* نكمل بالتقييمات المحلية بس */ })
+    return () => { cancelled = true }
+  }, [product.id])
+
+  const reviews: DisplayReview[] = [
+    ...getApprovedReviews(product.id).map(review => ({ id: review.id, userName: review.userName, rating: review.rating, comment: review.comment, date: review.date })),
+    ...serverReviews.map(review => ({
+      id: `srv-${review.id}`,
+      userName: isArabic ? review.reviewerNameAr : review.reviewerNameEn ?? review.reviewerNameAr,
+      rating: review.rating,
+      comment: isArabic ? review.commentAr : review.commentEn ?? review.commentAr,
+      date: review.createdAt,
+    })),
+  ].sort((a, b) => parseServerDate(b.date).getTime() - parseServerDate(a.date).getTime())
+
+  const rating = {
+    count: reviews.length,
+    average: reviews.length ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10 : 0,
+  }
   const questions = getAnsweredQuestions(product.id)
 
   const purchased = Boolean(user) && orders.some(order => order.userEmail === user?.email && order.lines.some(line => line.productId === product.id))
@@ -312,11 +355,11 @@ export function Product() {
           </div>
         </section>
         <section className="mt-16 border-t border-line pt-10 dark:border-line-dark md:mt-24 md:pt-14">
-           <RecentlyViewedSection excludeId={product.id} />
+          <RecentlyViewedSection excludeId={product.id} />
         </section>
-      
+
       </div>
-     
+
       <MobileStickyBuyBar
         show={showStickyBar && purchasable}
         name={name}
